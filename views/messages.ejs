@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Messages - The God of Chosen Answers Prayers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-church"></i>
+                    <h1>The God of Chosen Answers Prayers</h1>
+                </div>
+                <div class="mobile-menu">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/messages" class="active">Messages</a></li>
+                        <li><a href="#" class="blurred">Testimonies</a></li>
+                        <li><a href="#" class="blurred">Events/News</a></li>
+                        <li><a href="#" class="blurred">About</a></li>
+                        <li><a href="/admin-login">Admin</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Header -->
+    <section class="hero" style="padding: 4rem 0; background: linear-gradient(135deg, var(--primary), #600000);">
+        <div class="container">
+            <h1><i class="fas fa-book-open"></i> All Messages</h1>
+            <p class="mb-0">Browse through all our sermons and spiritual resources</p>
+        </div>
+    </section>
+
+    <!-- Messages Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Page Info -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/">Home</a></li>
+                            <li class="breadcrumb-item active">All Messages</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-search"></i> Search Messages
+                            </h5>
+                            <p class="text-muted mb-0">Search by title, description, author, or code</p>
+                        </div>
+                        <div class="col-md-4">
+                            <form action="/search" method="GET" class="d-flex">
+                                <input type="text" name="q" class="form-control me-2" placeholder="Search messages..." required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Status -->
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-database"></i> 
+                <% if (usingMongoDB) { %>
+                    Connected to MongoDB Atlas - <%= messages.length %> messages available
+                <% } else { %>
+                    Using temporary storage - <%= messages.length %> messages available
+                <% } %>
+            </div>
+
+            <!-- Messages Grid -->
+            <% if (messages.length === 0) { %>
+                <div class="alert alert-warning text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h4>No Messages Available</h4>
+                    <p>There are no messages available at the moment. Please check back later for new sermons and resources.</p>
+                    <a href="/" class="btn btn-primary">Return to Homepage</a>
+                </div>
+            <% } else { %>
+                <!-- Messages Counter -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><%= messages.length %> Messages Available</h3>
+                    <div class="text-muted">
+                        <i class="fas fa-filter"></i> Sorted by: Most Recent First
+                    </div>
+                </div>
+
+                <div class="messages-grid">
+                    <% messages.forEach(function(message) { %>
+                    <div class="message-card">
+                        <div class="message-header">
+                            <h3><%= message.title %></h3>
+                            <span class="message-code"><%= message.code %></span>
+                        </div>
+                        <div class="message-body">
+                            <div class="message-meta">
+                                <span><i class="far fa-calendar"></i> 
+                                    <%= message.date.toLocaleDateString('en-US', { 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                    }) %>
+                                </span>
+                                <span><i class="far fa-user"></i> <%= message.author %></span>
+                            </div>
+                            <p class="message-description"><%= message.description %></p>
+                            <div class="message-actions">
+                                <% if (message.filePath) { %>
+                                    <a href="<%= message.filePath %>" class="btn btn-small" download>
+                                        <i class="fas fa-download"></i> Download PDF
+                                    </a>
+                                <% } else { %>
+                                    <span class="text-muted">
+                                        <i class="fas fa-file-pdf"></i> No PDF available
+                                    </span>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                    <% }); %>
+                </div>
+
+                <!-- Back to Top Button -->
+                <div class="text-center mt-4">
+                    <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
+                            class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-up"></i> Back to Top
+                    </button>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Contact Us</h3>
+                    <ul>
+                        <li><i class="fas fa-map-marker-alt"></i> The Chosen Estate, Amuwo Odofin, along Oshodi Apapa Express Way near Ijesha Bus Stop, Lagos, Nigeria</li>
+                        <li><i class="fas fa-phone"></i> (123) 456-7890</li>
+                        <li><i class="fas fa-envelope"></i> info@churchofchosen.com</li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/messages">Messages</a></li>
+                        <li><a href="#" class="blurred-link">Testimonies</a></li>
+                        <li><a href="#" class="blurred-link">Events</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Service Times</h3>
+                    <ul>
+                        <li>Sunday: 9:00 AM & 11:00 AM</li>
+                        <li>Wednesday: 7:00 PM</li>
+                        <li>Friday: Prayer @ 6:30 PM</li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Connect With Us</h3>
+                    <ul>
+                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                        <li><a href="#"><i class="fab fa-youtube"></i> YouTube</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2023 The God of Chosen Answers Prayers. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile menu toggle
+        document.querySelector('.mobile-menu')?.addEventListener('click', function() {
+            const nav = document.querySelector('nav ul');
+            if (nav.style.display === 'flex') {
+                nav.style.display = 'none';
+            } else {
+                nav.style.display = 'flex';
+            }
+        });
+
+        // Message card animations
+        document.querySelectorAll('.message-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Auto-hide alert after 5 seconds
+        setTimeout(() => {
+            const alert = document.querySelector('.alert');
+            if (alert) {
+                alert.style.opacity = '0';
+                alert.style.transition = 'opacity 0.5s';
+                setTimeout(() => alert.remove(), 500);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "church-website",
+  "version": "1.0.0",
+  "description": "Church website with admin features",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "multer": "^1.4.4",
+    "ejs": "^3.1.9",
+    "dotenv": "^16.3.1",
+    "express-session": "^1.17.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

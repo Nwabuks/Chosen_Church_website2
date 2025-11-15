@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - The God of Chosen Answers Prayers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .admin-container {
+            min-height: 80vh;
+            padding: 2rem 0;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, var(--primary), #600000);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .upload-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .messages-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+        }
+        .file-upload {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: #f0f4f8;
+        }
+        .file-upload.dragover {
+            border-color: var(--secondary);
+            background: #fff9e6;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .back-to-home {
+            background: #6c757d;
+        }
+        .back-to-home:hover {
+            background: #5a6268;
+        }
+        .message-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .message-item {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+        .message-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .message-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        .message-title {
+            font-weight: 600;
+            color: var(--primary);
+            flex: 1;
+            margin-right: 1rem;
+        }
+        .message-code {
+            background: var(--secondary);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .message-meta {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+        .message-description {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.8rem;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-cogs"></i> Admin Panel</h1>
+                    <p class="mb-0">The God of Chosen Answers Prayers - Message Management</p>
+                </div>
+                <div>
+                    <a href="/" class="btn btn-light me-2">
+                        <i class="fas fa-home"></i> View Website
+                    </a>
+                    <a href="/admin-logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Content -->
+    <div class="container admin-container">
+        <!-- Success Message -->
+        <% if (success) { %>
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle"></i> <%= success %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- Admin Actions -->
+        <div class="admin-actions">
+            <a href="/" class="btn back-to-home">
+                <i class="fas fa-home"></i> View Website
+            </a>
+            <a href="/messages" class="btn btn-info">
+                <i class="fas fa-eye"></i> View Public Messages
+            </a>
+            <button class="btn btn-warning" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h3 class="mb-4"><i class="fas fa-upload"></i> Upload New Message</h3>
+            
+            <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageTitle">Message Title *</label>
+                            <input type="text" class="form-control" id="messageTitle" name="title" 
+                                   placeholder="Enter message title" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageCode">Message Code *</label>
+                            <input type="text" class="form-control" id="messageCode" name="code" 
+                                   placeholder="e.g., PF, MD, JPEG" required>
+                            <small class="text-muted">Short code for the message (2-5 characters)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageDate">Date *</label>
+                            <input type="date" class="form-control" id="messageDate" name="date" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageAuthor">Author *</label>
+                            <input type="text" class="form-control" id="messageAuthor" name="author" 
+                                   placeholder="Enter author name" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="messageDescription">Description *</label>
+                    <textarea class="form-control" id="messageDescription" name="description" 
+                              rows="4" placeholder="Enter message description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Upload PDF File (Optional)</label>
+                    <div class="file-upload" id="fileUploadArea">
+                        <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                        <h5>Drop PDF file here or click to browse</h5>
+                        <p class="text-muted">Maximum file size: 10MB</p>
+                        <input type="file" class="d-none" id="messageFile" name="messageFile" accept=".pdf">
+                        <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('messageFile').click()">
+                            <i class="fas fa-folder-open"></i> Choose File
+                        </button>
+                        <div id="fileName" class="mt-2 text-success fw-bold"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-upload"></i> Upload Message
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-redo"></i> Reset Form
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Messages Management Section -->
+        <div class="messages-section">
+            <h3 class="mb-4"><i class="fas fa-list"></i> Manage Existing Messages</h3>
+            
+            <!-- Database Status -->
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-database"></i> 
+                <% if (usingMongoDB) { %>
+                    Connected to MongoDB Atlas - All changes are permanent
+                <% } else { %>
+                    Using temporary storage - Changes will reset on server restart
+                <% } %>
+            </div>
+
+            <!-- Messages will be loaded here via JavaScript -->
+            <div id="messagesList" class="message-list">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                    <p>Loading messages...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> Admin Instructions</h5>
+            <ul class="mb-0">
+                <li>Only PDF files are allowed for upload</li>
+                <li>Maximum file size is 10MB</li>
+                <li>Fill in all required fields marked with *</li>
+                <li>PDF files are optional - you can upload messages without attachments</li>
+                <li>Deleted messages cannot be recovered</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // File upload handling
+        const fileInput = document.getElementById('messageFile');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileNameDisplay = document.getElementById('fileName');
+        const uploadForm = document.getElementById('uploadForm');
+
+        // File selection handling
+        fileInput.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                fileNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                
+                // Validate file type
+                if (file.type !== 'application/pdf') {
+                    alert('Error: Only PDF files are allowed!');
+                    this.value = '';
+                    fileNameDisplay.textContent = '';
+                    fileNameDisplay.className = 'mt-2 text-danger fw-bold';
+                } else {
+                    fileNameDisplay.className = 'mt-2 text-success fw-bold';
+                }
+                
+                // Validate file size
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Error: File size must be less than 10MB!');
+                    this.value = '';
+                    fileNameDisplay.textContent = '';
+                }
+            }
+        });
+
+        // Drag and drop functionality
+        fileUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Click to select file
+        fileUploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Form validation
+        uploadForm.addEventListener('submit', function(e) {
+            const title = document.getElementById('messageTitle').value.trim();
+            const code = document.getElementById('messageCode').value.trim();
+            const date = document.getElementById('messageDate').value;
+            const author = document.getElementById('messageAuthor').value.trim();
+            const description = document.getElementById('messageDescription').value.trim();
+
+            let errors = [];
+
+            if (!title) errors.push('Message title is required');
+            if (!code) errors.push('Message code is required');
+            if (!date) errors.push('Date is required');
+            if (!author) errors.push('Author is required');
+            if (!description) errors.push('Description is required');
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
+            } else {
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.disabled = true;
+            }
+        });
+
+        // Set default date to today
+        document.getElementById('messageDate').valueAsDate = new Date();
+
+        // Form reset handling
+        uploadForm.addEventListener('reset', function() {
+            fileNameDisplay.textContent = '';
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Message';
+            submitBtn.disabled = false;
+        });
+
+        // Load and display messages
+        async function loadMessages() {
+            try {
+                const response = await fetch('/messages-data');
+                const messages = await response.json();
+                
+                const messagesList = document.getElementById('messagesList');
+                
+                if (messages.length === 0) {
+                    messagesList.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <h5>No Messages Yet</h5>
+                            <p>Upload your first message using the form above.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                messagesList.innerHTML = messages.map(message => `
+                    <div class="message-item">
+                        <div class="message-header">
+                            <div class="message-title">${message.title}</div>
+                            <span class="message-code">${message.code}</span>
+                        </div>
+                        <div class="message-meta">
+                            <i class="far fa-calendar"></i> ${new Date(message.date).toLocaleDateString()} • 
+                            <i class="far fa-user"></i> ${message.author}
+                            ${message.filePath ? '• <i class="fas fa-file-pdf text-danger"></i> PDF Available' : '• <i class="fas fa-times text-muted"></i> No PDF'}
+                        </div>
+                        <div class="message-description">${message.description}</div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                ID: ${message._id}
+                            </small>
+                            <form action="/delete/${message._id}" method="POST" onsubmit="return confirm('Are you sure you want to delete \"${message.title}\"? This action cannot be undone.')">
+                                <button type="submit" class="delete-btn">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('messagesList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading messages. Please refresh the page.
+                    </div>
+                `;
+            }
+        }
+
+        // Load messages when page loads
+        document.addEventListener('DOMContentLoaded', loadMessages);
+    </script>
+</body>
+</html>
