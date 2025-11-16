@@ -24,6 +24,23 @@ const multer = require('multer');
 const session = require('express-session');
 const app = express();
 
+// ===== HELPER FUNCTIONS =====
+function highlightText(text, query) {
+    if (!query || !text) return text;
+    
+    const searchTerms = query.split(' ').filter(term => term.length > 2);
+    let highlightedText = text;
+    
+    searchTerms.forEach(term => {
+        const regex = new RegExp(term, 'gi');
+        highlightedText = highlightedText.replace(regex, match => 
+            `<span class="search-highlight">${match}</span>`
+        );
+    });
+    
+    return highlightedText;
+}
+
 // ===== CONFIGURATION =====
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
@@ -300,13 +317,14 @@ app.get('/search', async (req, res) => {
             console.log('🔍 Search results from temporary storage:', messages.length, 'messages found');
         }
         
-        res.render('search', { 
-            messages: messages, 
-            isAdmin: false,
-            usingMongoDB: usingMongoDB,
-            searchQuery: searchTerm,
-            resultsCount: messages.length
-        });
+res.render('search', { 
+    messages: messages, 
+    isAdmin: false,
+    usingMongoDB: usingMongoDB,
+    searchQuery: searchTerm,
+    resultsCount: messages.length,
+    highlightText: highlightText  // Add this line
+});
     } catch (err) {
         console.log('Search error:', err);
         res.render('search', { 
