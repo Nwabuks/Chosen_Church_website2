@@ -109,7 +109,7 @@ const upload = multer({
 });
 
 // ===== TEMPORARY STORAGE (FALLBACK) =====
-let tempMessages = [
+/*let tempMessages = [
     {
         _id: '1',
         title: 'The Power of Faith',
@@ -151,6 +151,7 @@ let tempMessages = [
         featured: false
     }
 ];
+*/
 
 // ===== MIDDLEWARE =====
 
@@ -180,42 +181,35 @@ app.get('/preview/:filename', (req, res) => {
     });
 });
 // Homepage - Show only 3 recent messages
+
+// Homepage - Show only 3 recent messages
 app.get('/', async (req, res) => {
     try {
-        let messages;
-        let usingMongoDB = false;
+        let messages = [];
         let totalMessages = 0;
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // Get only 3 most recent messages for homepage
-                messages = await Message.find().sort({ date: -1 }).limit(3);
-                totalMessages = await Message.countDocuments();
-                usingMongoDB = true;
-                console.log('📥 Loaded', messages.length, 'recent messages for homepage');
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            // Get first 3 messages from temporary storage
-            messages = tempMessages.slice(0, 3);
-            totalMessages = tempMessages.length;
-            console.log('📥 Loaded', messages.length, 'recent messages from temporary storage');
+        if (mongoose.connection.readyState === 1) {
+            // Get only 3 most recent messages for homepage
+            messages = await Message.find().sort({ date: -1 }).limit(3);
+            totalMessages = await Message.countDocuments();
+            console.log('📥 Loaded', messages.length, 'recent messages for homepage from MongoDB');
+        } else {
+            console.log('❌ MongoDB not connected - showing empty state');
         }
         
         res.render('index', { 
             messages: messages, 
             isAdmin: false,
-            usingMongoDB: usingMongoDB,
+            usingMongoDB: mongoose.connection.readyState === 1,
             totalMessages: totalMessages
         });
     } catch (err) {
         console.log('Error loading messages:', err);
         res.render('index', { 
-            messages: tempMessages.slice(0, 3), 
+            messages: [], 
             isAdmin: false,
             usingMongoDB: false,
-            totalMessages: tempMessages.length
+            totalMessages: 0
         });
     }
 });
@@ -223,37 +217,25 @@ app.get('/', async (req, res) => {
 // Messages Page - Show ALL messages with featured first
 app.get('/messages', async (req, res) => {
     try {
-        let messages;
-        let usingMongoDB = false;
+        let messages = [];
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // Get messages with featured first, then by date
-                messages = await Message.find().sort({ featured: -1, date: -1 });
-                usingMongoDB = true;
-                console.log('📥 Loaded', messages.length, 'messages for messages page');
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            // Sort temp messages: featured first, then by date
-            messages = [...tempMessages].sort((a, b) => {
-                if (a.featured && !b.featured) return -1;
-                if (!a.featured && b.featured) return 1;
-                return new Date(b.date) - new Date(a.date);
-            });
-            console.log('📥 Loaded', messages.length, 'messages from temporary storage');
+        if (mongoose.connection.readyState === 1) {
+            // Get messages with featured first, then by date
+            messages = await Message.find().sort({ featured: -1, date: -1 });
+            console.log('📥 Loaded', messages.length, 'messages for messages page from MongoDB');
+        } else {
+            console.log('❌ MongoDB not connected');
         }
         
         res.render('messages', { 
             messages: messages, 
             isAdmin: false,
-            usingMongoDB: usingMongoDB
+            usingMongoDB: mongoose.connection.readyState === 1
         });
     } catch (err) {
         console.log('Error loading messages:', err);
         res.render('messages', { 
-            messages: tempMessages, 
+            messages: [], 
             isAdmin: false,
             usingMongoDB: false
         });
@@ -265,7 +247,6 @@ app.get('/search', async (req, res) => {
     try {
         const query = req.query.q;
         let messages = [];
-        let usingMongoDB = false;
         
         if (!query || query.trim() === '') {
             return res.redirect('/messages');
@@ -273,37 +254,25 @@ app.get('/search', async (req, res) => {
 
         const searchTerm = query.trim();
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // Search in MongoDB (case-insensitive)
-                messages = await Message.find({
-                    $or: [
-                        { title: { $regex: searchTerm, $options: 'i' } },
-                        { description: { $regex: searchTerm, $options: 'i' } },
-                        { author: { $regex: searchTerm, $options: 'i' } },
-                        { code: { $regex: searchTerm, $options: 'i' } }
-                    ]
-                }).sort({ date: -1 });
-                usingMongoDB = true;
-                console.log('🔍 Search results from MongoDB:', messages.length, 'messages found');
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            // Search in temporary storage
-            messages = tempMessages.filter(message => 
-                message.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.code.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            console.log('🔍 Search results from temporary storage:', messages.length, 'messages found');
+        if (mongoose.connection.readyState === 1) {
+            // Search in MongoDB (case-insensitive)
+            messages = await Message.find({
+                $or: [
+                    { title: { $regex: searchTerm, $options: 'i' } },
+                    { description: { $regex: searchTerm, $options: 'i' } },
+                    { author: { $regex: searchTerm, $options: 'i' } },
+                    { code: { $regex: searchTerm, $options: 'i' } }
+                ]
+            }).sort({ date: -1 });
+            console.log('🔍 Search results from MongoDB:', messages.length, 'messages found');
+        } else {
+            console.log('❌ MongoDB not connected - cannot search');
         }
         
         res.render('search', { 
             messages: messages, 
             isAdmin: false,
-            usingMongoDB: usingMongoDB,
+            usingMongoDB: mongoose.connection.readyState === 1,
             searchQuery: searchTerm,
             resultsCount: messages.length
         });
@@ -598,21 +567,15 @@ app.post('/upload', requireAuth, upload.single('messageFile'), async (req, res) 
 
         console.log('📤 Admin uploading message:', newMessage);
 
-        try {
-            if (mongoose.connection.readyState === 1) {
-                const savedMessage = new Message(newMessage);
-                await savedMessage.save();
-                console.log('✅ Message saved to MongoDB Atlas');
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            newMessage._id = Date.now().toString();
-            tempMessages.unshift(newMessage);
-            console.log('✅ Message saved to temporary storage');
+        if (mongoose.connection.readyState === 1) {
+            const savedMessage = new Message(newMessage);
+            await savedMessage.save();
+            console.log('✅ Message saved to MongoDB Atlas');
+            res.redirect('/admin?success=Message uploaded successfully');
+        } else {
+            console.log('❌ MongoDB not connected - cannot save message');
+            res.status(500).send('Database not available. Please check MongoDB connection.');
         }
-
-        res.redirect('/admin?success=Message uploaded successfully');
     } catch (err) {
         console.log('Upload error:', err);
         res.status(500).send('Error uploading message: ' + err.message);
@@ -620,36 +583,47 @@ app.post('/upload', requireAuth, upload.single('messageFile'), async (req, res) 
 });
 
 // Delete Message (Protected - Admin only)
+// Delete Message (Protected - Admin only)
 app.post('/delete/:id', requireAuth, async (req, res) => {
     try {
         const messageId = req.params.id;
         console.log('🗑️ Admin deleting message:', messageId);
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                const result = await Message.findByIdAndDelete(messageId);
-                if (result) {
-                    console.log('✅ Message deleted from MongoDB Atlas');
-                } else {
-                    console.log('❌ Message not found in MongoDB');
-                }
+        if (mongoose.connection.readyState === 1) {
+            const result = await Message.findByIdAndDelete(messageId);
+            if (result) {
+                console.log('✅ Message deleted from MongoDB Atlas');
+                res.redirect('/admin?success=Message deleted successfully');
             } else {
-                throw new Error('MongoDB not connected');
+                console.log('❌ Message not found in MongoDB');
+                res.redirect('/admin?error=Message not found');
             }
-        } catch (dbError) {
-            const initialLength = tempMessages.length;
-            tempMessages = tempMessages.filter(msg => msg._id !== messageId);
-            if (tempMessages.length < initialLength) {
-                console.log('✅ Message deleted from temporary storage');
-            } else {
-                console.log('❌ Message not found in temporary storage');
-            }
+        } else {
+            console.log('❌ MongoDB not connected - cannot delete');
+            res.status(500).send('Database not available. Please check MongoDB connection.');
         }
-
-        res.redirect('/admin?success=Message deleted successfully');
     } catch (err) {
         console.log('Delete error:', err);
         res.status(500).send('Error deleting message');
+    }
+});
+// Get messages data for admin panel (JSON API)
+app.get('/messages-data', requireAuth, async (req, res) => {
+    try {
+        let messages = [];
+        
+        if (mongoose.connection.readyState === 1) {
+            // Get all messages from MongoDB, sorted by date (newest first)
+            messages = await Message.find().sort({ date: -1 });
+        } else {
+            console.log('❌ MongoDB not connected');
+        }
+
+        // Send messages as JSON data (not HTML)
+        res.json(messages);
+    } catch (err) {
+        console.log('Error loading messages data:', err);
+        res.status(500).json({ error: 'Failed to load messages' });
     }
 });
 
