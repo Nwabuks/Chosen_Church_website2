@@ -2,20 +2,8 @@
 const path = require('path');
 const fs = require('fs');
 
-// Check if .env file exists
-const envPath = path.join(__dirname, '.env');
-if (fs.existsSync(envPath)) {
-    console.log('✅ .env file found, loading environment variables...');
-    require('dotenv').config();
-} else {
-    console.log('❌ .env file not found, creating template...');
-    const envTemplate = `PORT=3000
-MONGO_URI=mongodb+srv://username:password@cluster0.xxx.mongodb.net/churchWebsite?retryWrites=true&w=majority
-SESSION_SECRET=your-secret-key-here
-ADMIN_PASSWORD=admin123`;
-    fs.writeFileSync(envPath, envTemplate);
-    console.log('📁 Created .env template file. Please edit it with your MongoDB Atlas credentials.');
-}
+// Load environment variables (Render will provide these)
+require('dotenv').config();
 
 // ===== IMPORTS =====
 const express = require('express');
@@ -26,12 +14,13 @@ const app = express();
 
 // ===== CONFIGURATION =====
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGO_URI;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 console.log('🔧 Configuration:');
 console.log('   PORT:', PORT);
-console.log('   MONGODB_URI:', MONGODB_URI ? '*** loaded ***' : 'NOT SET - using temporary storage');
+console.log('   MONGODB_URI:', MONGODB_URI ? '*** loaded ***' : 'NOT SET');
+console.log('   NODE_ENV:', process.env.NODE_ENV);
 
 // ===== MIDDLEWARE =====
 app.use(express.static(path.join(__dirname, 'public')));
@@ -44,24 +33,27 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'church-website-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 } // 24 hours
 }));
 
+// ===== MONGODB CONNECTION =====
 // ===== MONGODB CONNECTION =====
 if (MONGODB_URI && MONGODB_URI.includes('mongodb+srv://')) {
     mongoose.connect(MONGODB_URI, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000, // 5 second timeout
+        socketTimeoutMS: 45000, // 45 second socket timeout
     })
     .then(() => {
         console.log('✅ Connected to MongoDB Atlas successfully');
     })
     .catch(err => {
         console.log('❌ MongoDB Atlas connection failed:', err.message);
-        console.log('💡 Please check your MONGO_URI in the .env file');
+        console.log('💡 Please check your MONGO_URI environment variable');
     });
 } else {
-    console.log('⚠️  No valid MONGODB_URI found, using temporary storage');
+    console.log('❌ No valid MONGODB_URI found - Database features disabled');
 }
 
 // ===== MESSAGE SCHEMA =====
