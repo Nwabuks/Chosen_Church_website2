@@ -157,12 +157,12 @@
                                 </div>
                                 <p class="card-text"><%= featuredMessage.description %></p>
                                 <div class="message-actions">
-                                    <% if (featuredMessage.filePath) { %>
-                                        <a href="/download/<%= featuredMessage._id %>" class="btn btn-warning">
+                                    <% if (featuredMessage.filePath || featuredMessage.pdfFile) { %>
+                                        <a href="/pdf/<%= featuredMessage._id %>" class="btn btn-warning" download>
                                             <i class="fas fa-download"></i> Download PDF
                                         </a>
                                         <!-- Add Preview Button -->
-                                        <a href="/preview/<%= featuredMessage.filePath.split('/').pop() %>" class="btn btn-outline-warning">
+                                        <a href="/preview/<%= featuredMessage._id %>" class="btn btn-outline-warning">
                                             <i class="fas fa-eye"></i> Preview PDF
                                         </a>
                                     <% } else { %>
@@ -233,12 +233,12 @@
                             </div>
                             <p class="message-description"><%= message.description %></p>
                             <div class="message-actions">
-                                <% if (message.filePath) { %>
-                                    <a href="/download/<%= message._id %>" class="btn btn-small">
+                                <% if (message.filePath || message.pdfFile) { %>
+                                    <a href="/pdf/<%= message._id %>" class="btn btn-small" download>
                                         <i class="fas fa-download"></i> Download PDF
                                     </a>
                                     <!-- Add Preview Button -->
-                                    <a href="/preview/<%= message.filePath.split('/').pop() %>" class="btn btn-small btn-outline">
+                                    <a href="/preview/<%= message._id %>" class="btn btn-small btn-outline">
                                         <i class="fas fa-eye"></i> Preview PDF
                                     </a>
                                 <% } else { %>
@@ -281,7 +281,7 @@
                         <li><a href="/">Home</a></li>
                         <li><a href="/messages">Messages</a></li>
                         <li><a href="#" class="blurred-link">Testimonies</a></li>
-                        <li><a href="#" class="blurred-link">Events</a></li>
+                        <li><a href="#" class="blurred-link">Events/News</a></li>
                     </ul>
                 </div>
                 <div class="footer-column">

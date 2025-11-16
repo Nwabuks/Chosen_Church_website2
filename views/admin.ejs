@@ -548,7 +548,7 @@
                             <div class="message-meta">
                                 <i class="far fa-calendar"></i> ${new Date(message.date).toLocaleDateString()} • 
                                 <i class="far fa-user"></i> ${author}
-                                ${message.filePath ? '• <i class="fas fa-file-pdf text-danger"></i> PDF Available' : '• <i class="fas fa-times text-muted"></i> No PDF'}
+                                ${(message.filePath || message.pdfFile) ? '• <i class="fas fa-file-pdf text-danger"></i> PDF Available' : '• <i class="fas fa-times text-muted"></i> No PDF'}
                                 ${message.featured ? '• <span class="featured-badge"><i class="fas fa-star"></i> Featured</span>' : ''}
                             </div>
                             <div class="message-description">${description}</div>

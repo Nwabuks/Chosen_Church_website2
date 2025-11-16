@@ -24,23 +24,6 @@ const multer = require('multer');
 const session = require('express-session');
 const app = express();
 
-// ===== HELPER FUNCTIONS =====
-function highlightText(text, query) {
-    if (!query || !text) return text;
-    
-    const searchTerms = query.split(' ').filter(term => term.length > 2);
-    let highlightedText = text;
-    
-    searchTerms.forEach(term => {
-        const regex = new RegExp(term, 'gi');
-        highlightedText = highlightedText.replace(regex, match => 
-            `<span class="search-highlight">${match}</span>`
-        );
-    });
-    
-    return highlightedText;
-}
-
 // ===== CONFIGURATION =====
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
@@ -89,6 +72,13 @@ const messageSchema = new mongoose.Schema({
     author: { type: String, required: true },
     description: { type: String, required: true },
     filePath: { type: String, default: '' },
+    // Add these new fields for MongoDB file storage
+    pdfFile: {
+        data: Buffer,
+        contentType: String,
+        filename: String,
+        size: Number
+    },
     featured: { type: Boolean, default: false }
 }, {
     timestamps: true
@@ -97,19 +87,7 @@ const messageSchema = new mongoose.Schema({
 const Message = mongoose.model('Message', messageSchema);
 
 // ===== FILE UPLOAD CONFIGURATION =====
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadsDir = path.join(__dirname, 'public/uploads/');
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-        cb(null, uploadsDir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
-        cb(null, uniqueName);
-    }
-});
+const storage = multer.memoryStorage(); // Store files in memory as Buffer
 
 const upload = multer({ 
     storage: storage,
@@ -121,9 +99,26 @@ const upload = multer({
         }
     },
     limits: {
-        fileSize: 10 * 1024 * 1024
+        fileSize: 10 * 1024 * 1024 // 10MB
     }
 });
+
+// ===== HELPER FUNCTIONS =====
+function highlightText(text, query) {
+    if (!query || !text) return text;
+    
+    const searchTerms = query.split(' ').filter(term => term.length > 2);
+    let highlightedText = text;
+    
+    searchTerms.forEach(term => {
+        const regex = new RegExp(term, 'gi');
+        highlightedText = highlightedText.replace(regex, match => 
+            `<span class="search-highlight">${match}</span>`
+        );
+    });
+    
+    return highlightedText;
+}
 
 // ===== TEMPORARY STORAGE (FALLBACK) =====
 let tempMessages = [
@@ -134,7 +129,7 @@ let tempMessages = [
         date: new Date('2023-10-15'),
         author: 'Pastor John',
         description: 'Exploring how faith can move mountains in our daily lives and strengthen our relationship with God.',
-        filePath: '/uploads/sample-faith.pdf',
+        filePath: '/pdf/1',
         featured: true
     },
     {
@@ -144,7 +139,7 @@ let tempMessages = [
         date: new Date('2023-10-08'),
         author: 'Pastor Mark',
         description: 'Understanding God\'s infinite mercy and how it transforms our lives when we accept it.',
-        filePath: '/uploads/sample-mercy.pdf',
+        filePath: '/pdf/2',
         featured: false
     },
     {
@@ -154,7 +149,7 @@ let tempMessages = [
         date: new Date('2023-10-01'),
         author: 'Pastor Sarah',
         description: 'Discovering the joy and blessings that come from a generous heart and giving spirit.',
-        filePath: '/uploads/sample-joy.pdf',
+        filePath: '/pdf/3',
         featured: false
     },
     {
@@ -181,21 +176,76 @@ const requireAuth = (req, res, next) => {
 };
 
 // ===== ROUTES =====
-// ===== PDF PREVIEW ROUTE =====
-app.get('/preview/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'public/uploads', filename);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).send('PDF not found');
+
+// ===== PDF DOWNLOAD ROUTE =====
+app.get('/pdf/:id', async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        let message;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                message = await Message.findById(messageId);
+            } else {
+                message = tempMessages.find(msg => msg._id === messageId);
+            }
+        } catch (dbError) {
+            message = tempMessages.find(msg => msg._id === messageId);
+        }
+
+        if (!message) {
+            return res.status(404).send('Message not found');
+        }
+
+        // Check if PDF is stored in MongoDB
+        if (message.pdfFile && message.pdfFile.data) {
+            res.setHeader('Content-Type', message.pdfFile.contentType);
+            res.setHeader('Content-Disposition', `inline; filename="${message.pdfFile.filename}"`);
+            res.setHeader('Content-Length', message.pdfFile.size);
+            res.send(message.pdfFile.data);
+        } else if (message.filePath && fs.existsSync(path.join(__dirname, 'public', message.filePath))) {
+            // Fallback to file system for existing files
+            const filePath = path.join(__dirname, 'public', message.filePath);
+            res.sendFile(filePath);
+        } else {
+            res.status(404).send('No PDF available for this message');
+        }
+    } catch (err) {
+        console.log('PDF download error:', err);
+        res.status(500).send('Error retrieving PDF');
     }
-    
-    res.render('pdf-preview', { 
-        filename: filename,
-        filePath: `/uploads/${filename}`
-    });
 });
+
+// ===== PDF PREVIEW ROUTE =====
+app.get('/preview/:id', async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        let message;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                message = await Message.findById(messageId);
+            } else {
+                message = tempMessages.find(msg => msg._id === messageId);
+            }
+        } catch (dbError) {
+            message = tempMessages.find(msg => msg._id === messageId);
+        }
+
+        if (!message) {
+            return res.status(404).send('Message not found');
+        }
+
+        res.render('pdf-preview', { 
+            filename: message.pdfFile?.filename || 'document.pdf',
+            filePath: `/pdf/${messageId}`
+        });
+    } catch (err) {
+        console.log('PDF preview error:', err);
+        res.status(500).send('Error loading PDF preview');
+    }
+});
+
 // Homepage - Show only 3 recent messages
 app.get('/', async (req, res) => {
     try {
@@ -317,14 +367,14 @@ app.get('/search', async (req, res) => {
             console.log('🔍 Search results from temporary storage:', messages.length, 'messages found');
         }
         
-res.render('search', { 
-    messages: messages, 
-    isAdmin: false,
-    usingMongoDB: usingMongoDB,
-    searchQuery: searchTerm,
-    resultsCount: messages.length,
-    highlightText: highlightText  // Add this line
-});
+        res.render('search', { 
+            messages: messages, 
+            isAdmin: false,
+            usingMongoDB: usingMongoDB,
+            searchQuery: searchTerm,
+            resultsCount: messages.length,
+            highlightText: highlightText
+        });
     } catch (err) {
         console.log('Search error:', err);
         res.render('search', { 
@@ -332,7 +382,8 @@ res.render('search', {
             isAdmin: false,
             usingMongoDB: false,
             searchQuery: req.query.q || '',
-            resultsCount: 0
+            resultsCount: 0,
+            highlightText: highlightText
         });
     }
 });
@@ -504,10 +555,18 @@ app.post('/update/:id', requireAuth, upload.single('messageFile'), async (req, r
         // Handle file updates
         if (removeFile === 'on') {
             updatedMessage.filePath = '';
+            updatedMessage.pdfFile = null;
         } else if (req.file) {
-            updatedMessage.filePath = '/uploads/' + req.file.filename;
+            // Store new PDF in MongoDB
+            updatedMessage.pdfFile = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                filename: req.file.originalname,
+                size: req.file.size
+            };
+            updatedMessage.filePath = `/pdf/${messageId}`;
         } else {
-            // Keep existing file path
+            // Keep existing file
             let existingMessage;
             try {
                 if (mongoose.connection.readyState === 1) {
@@ -516,13 +575,15 @@ app.post('/update/:id', requireAuth, upload.single('messageFile'), async (req, r
                     existingMessage = tempMessages.find(msg => msg._id === messageId);
                 }
                 updatedMessage.filePath = existingMessage?.filePath || '';
+                updatedMessage.pdfFile = existingMessage?.pdfFile || null;
             } catch (dbError) {
                 existingMessage = tempMessages.find(msg => msg._id === messageId);
                 updatedMessage.filePath = existingMessage?.filePath || '';
+                updatedMessage.pdfFile = existingMessage?.pdfFile || null;
             }
         }
 
-        console.log('📝 Admin updating message:', messageId, updatedMessage);
+        console.log('📝 Admin updating message:', messageId, updatedMessage.title);
 
         try {
             if (mongoose.connection.readyState === 1) {
@@ -594,6 +655,7 @@ app.post('/featured/:id', requireAuth, async (req, res) => {
         res.status(500).send('Error setting featured message');
     }
 });
+
 // Unfeature Message (Protected - Admin only)
 app.post('/unfeature/:id', requireAuth, async (req, res) => {
     try {
@@ -646,22 +708,39 @@ app.post('/upload', requireAuth, upload.single('messageFile'), async (req, res) 
             date: new Date(date),
             author: author,
             description: description,
-            filePath: req.file ? '/uploads/' + req.file.filename : '',
+            filePath: '',
             featured: false
         };
 
-        console.log('📤 Admin uploading message:', newMessage);
+        // If a PDF file was uploaded, store it in MongoDB
+        if (req.file) {
+            newMessage.pdfFile = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                filename: req.file.originalname,
+                size: req.file.size
+            };
+            // Also set filePath for backward compatibility
+            newMessage.filePath = `/pdf/${Date.now()}-${req.file.originalname}`;
+        }
+
+        console.log('📤 Admin uploading message:', newMessage.title);
 
         try {
             if (mongoose.connection.readyState === 1) {
                 const savedMessage = new Message(newMessage);
                 await savedMessage.save();
-                console.log('✅ Message saved to MongoDB Atlas');
+                console.log('✅ Message saved to MongoDB Atlas with PDF');
             } else {
                 throw new Error('MongoDB not connected');
             }
         } catch (dbError) {
             newMessage._id = Date.now().toString();
+            // For temporary storage, we can't store the file buffer, so we skip PDF
+            if (req.file) {
+                console.log('⚠️ PDF not saved in temporary storage mode');
+                newMessage.filePath = ''; // No file storage in temp mode
+            }
             tempMessages.unshift(newMessage);
             console.log('✅ Message saved to temporary storage');
         }
@@ -707,6 +786,41 @@ app.post('/delete/:id', requireAuth, async (req, res) => {
     }
 });
 
+// ===== MIGRATION ROUTE (Run once then remove) =====
+app.get('/migrate-pdfs', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState !== 1) {
+            return res.send('MongoDB not connected');
+        }
+
+        const messages = await Message.find({ filePath: { $ne: '' } });
+        let migratedCount = 0;
+
+        for (const message of messages) {
+            if (message.filePath && !message.pdfFile) {
+                const filePath = path.join(__dirname, 'public', message.filePath);
+                if (fs.existsSync(filePath)) {
+                    const fileBuffer = fs.readFileSync(filePath);
+                    message.pdfFile = {
+                        data: fileBuffer,
+                        contentType: 'application/pdf',
+                        filename: path.basename(message.filePath),
+                        size: fileBuffer.length
+                    };
+                    await message.save();
+                    migratedCount++;
+                    console.log(`✅ Migrated PDF for: ${message.title}`);
+                }
+            }
+        }
+
+        res.send(`Migration complete. ${migratedCount} PDFs migrated to MongoDB.`);
+    } catch (err) {
+        console.log('Migration error:', err);
+        res.status(500).send('Migration failed: ' + err.message);
+    }
+});
+
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
@@ -732,6 +846,7 @@ app.listen(PORT, () => {
     console.log(`🔐 Admin Login: http://localhost:${PORT}/admin-login`);
     console.log(`⚙️  Admin Panel: http://localhost:${PORT}/admin (after login)`);
     console.log(`✏️  Edit Messages: http://localhost:${PORT}/edit/:id`);
+    console.log(`📄 PDF Storage: MongoDB Database`);
     console.log(`⭐ Featured Messages: Enabled`);
     
     if (mongoose.connection.readyState === 1) {
@@ -740,11 +855,7 @@ app.listen(PORT, () => {
         console.log('💾 Storage: Temporary (Data resets on server restart)');
     }
     console.log('✅ Admin authentication enabled');
-    console.log('✅ Separate messages page created');
-    console.log('✅ Homepage shows 3 recent messages only');
-    console.log('✅ Admin panel shows all messages with delete options');
+    console.log('✅ PDF files stored in MongoDB');
     console.log('✅ Search functionality added');
-    console.log('✅ Admin search functionality added');
-    console.log('✅ Message editing functionality added');
     console.log('================================\n');
 });

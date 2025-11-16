@@ -142,10 +142,10 @@
                     <div class="message-card">
                         <div class="message-header">
                             <h3>
-                                <%= highlightText(message.title, searchQuery) %>
+                                <%= typeof highlightText === 'function' ? highlightText(message.title, searchQuery) : message.title %>
                             </h3>
                             <span class="message-code">
-                                <%= highlightText(message.code, searchQuery) %>
+                                <%= typeof highlightText === 'function' ? highlightText(message.code, searchQuery) : message.code %>
                             </span>
                         </div>
                         <div class="message-body">
@@ -158,19 +158,19 @@
                                     }) %>
                                 </span>
                                 <span><i class="far fa-user"></i> 
-                                    <%= highlightText(message.author, searchQuery) %>
+                                    <%= typeof highlightText === 'function' ? highlightText(message.author, searchQuery) : message.author %>
                                 </span>
                             </div>
                             <p class="message-description">
-                                <%= highlightText(message.description, searchQuery) %>
+                                <%= typeof highlightText === 'function' ? highlightText(message.description, searchQuery) : message.description %>
                             </p>
                             <div class="message-actions">
-                                <% if (message.filePath) { %>
-                                    <a href="<%= message.filePath %>" class="btn btn-small" download>
+                                <% if (message.filePath || message.pdfFile) { %>
+                                    <a href="/pdf/<%= message._id %>" class="btn btn-small" download>
                                         <i class="fas fa-download"></i> Download PDF
                                     </a>
                                     <!-- Add Preview Button -->
-                                    <a href="/preview/<%= message.filePath.split('/').pop() %>" class="btn btn-small btn-outline">
+                                    <a href="/preview/<%= message._id %>" class="btn btn-small btn-outline">
                                         <i class="fas fa-eye"></i> Preview PDF
                                     </a>
                                 <% } else { %>
@@ -201,8 +201,7 @@
     </main>
 
     <!-- Footer -->
-   <!-- Footer -->
-<footer>
+   <footer>
     <div class="container">
         <div class="footer-content">
             <div class="footer-column">
