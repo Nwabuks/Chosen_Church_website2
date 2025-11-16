@@ -576,6 +576,42 @@ app.post('/featured/:id', requireAuth, async (req, res) => {
         res.status(500).send('Error setting featured message');
     }
 });
+// Unfeature Message (Protected - Admin only)
+app.post('/unfeature/:id', requireAuth, async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        console.log('❌ Admin unfeaturing message:', messageId);
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                const result = await Message.findByIdAndUpdate(messageId, { featured: false }, { new: true });
+                if (result) {
+                    console.log('✅ Message unfeatured in MongoDB Atlas');
+                    res.status(200).json({ success: true });
+                } else {
+                    console.log('❌ Message not found in MongoDB');
+                    res.status(404).json({ error: 'Message not found' });
+                }
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            // For temporary storage
+            const messageIndex = tempMessages.findIndex(msg => msg._id === messageId);
+            if (messageIndex !== -1) {
+                tempMessages[messageIndex].featured = false;
+                console.log('✅ Message unfeatured in temporary storage');
+                res.status(200).json({ success: true });
+            } else {
+                console.log('❌ Message not found in temporary storage');
+                res.status(404).json({ error: 'Message not found' });
+            }
+        }
+    } catch (err) {
+        console.log('Unfeature error:', err);
+        res.status(500).json({ error: 'Error unfeaturing message' });
+    }
+});
 
 // Upload Message (Protected - Admin only)
 app.post('/upload', requireAuth, upload.single('messageFile'), async (req, res) => {
