@@ -2,7 +2,7 @@
 const path = require('path');
 const fs = require('fs');
 
-// Load environment variables (Render will provide these)
+// Load environment variables
 require('dotenv').config();
 
 // ===== IMPORTS =====
@@ -20,7 +20,6 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 console.log('🔧 Configuration:');
 console.log('   PORT:', PORT);
 console.log('   MONGODB_URI:', MONGODB_URI ? '*** loaded ***' : 'NOT SET');
-console.log('   NODE_ENV:', process.env.NODE_ENV);
 
 // ===== MIDDLEWARE =====
 app.use(express.static(path.join(__dirname, 'public')));
@@ -28,33 +27,59 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.set('view engine', 'ejs');
 
-// Session middleware
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'church-website-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 } // 24 hours
-}));
+// ===== MONGODB CONNECTION =====
+const connectDB = async () => {
+    try {
+        if (MONGODB_URI && MONGODB_URI.includes('mongodb+srv://')) {
+            await mongoose.connect(MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            });
+            console.log('✅ Connected to MongoDB Atlas successfully');
+            return true;
+        } else {
+            console.log('❌ No valid MONGODB_URI found');
+            console.log('💡 Please add MONGO_URI to your environment variables');
+            return false;
+        }
+    } catch (error) {
+        console.log('❌ MongoDB connection failed:', error.message);
+        return false;
+    }
+};
 
-// ===== MONGODB CONNECTION =====
-// ===== MONGODB CONNECTION =====
-if (MONGODB_URI && MONGODB_URI.includes('mongodb+srv://')) {
-    mongoose.connect(MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000, // 5 second timeout
-        socketTimeoutMS: 45000, // 45 second socket timeout
-    })
-    .then(() => {
-        console.log('✅ Connected to MongoDB Atlas successfully');
-    })
-    .catch(err => {
-        console.log('❌ MongoDB Atlas connection failed:', err.message);
-        console.log('💡 Please check your MONGO_URI environment variable');
-    });
-} else {
-    console.log('❌ No valid MONGODB_URI found - Database features disabled');
-}
+// ===== SESSION CONFIGURATION (After DB connection) =====
+const setupSession = () => {
+    let sessionConfig = {
+        secret: process.env.SESSION_SECRET || 'church-website-secret-key-change-in-production',
+        resave: false,
+        saveUninitialized: false,
+        cookie: { 
+            secure: false, // Set to true if using HTTPS
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        }
+    };
+
+    // Only use MongoDB session store if DB is connected
+    if (MONGODB_URI && MONGODB_URI.includes('mongodb+srv://')) {
+        try {
+            const MongoStore = require('connect-mongo');
+            sessionConfig.store = MongoStore.create({
+                mongoUrl: MONGODB_URI,
+                ttl: 24 * 60 * 60 // 1 day
+            });
+            console.log('✅ MongoDB session store configured');
+        } catch (error) {
+            console.log('⚠️  Could not setup MongoDB session store, using MemoryStore');
+        }
+    } else {
+        console.log('⚠️  Using MemoryStore for sessions (not recommended for production)');
+    }
+
+    return sessionConfig;
+};
+
+app.use(session(setupSession()));
 
 // ===== MESSAGE SCHEMA =====
 const messageSchema = new mongoose.Schema({
@@ -100,51 +125,6 @@ const upload = multer({
     }
 });
 
-// ===== TEMPORARY STORAGE (FALLBACK) =====
-/*let tempMessages = [
-    {
-        _id: '1',
-        title: 'The Power of Faith',
-        code: 'PF',
-        date: new Date('2023-10-15'),
-        author: 'Pastor John',
-        description: 'Exploring how faith can move mountains in our daily lives and strengthen our relationship with God.',
-        filePath: '/uploads/sample-faith.pdf',
-        featured: true
-    },
-    {
-        _id: '2', 
-        title: 'Divine Mercy',
-        code: 'MD',
-        date: new Date('2023-10-08'),
-        author: 'Pastor Mark',
-        description: 'Understanding God\'s infinite mercy and how it transforms our lives when we accept it.',
-        filePath: '/uploads/sample-mercy.pdf',
-        featured: false
-    },
-    {
-        _id: '3',
-        title: 'Joy in Giving',
-        code: 'JPEG',
-        date: new Date('2023-10-01'),
-        author: 'Pastor Sarah',
-        description: 'Discovering the joy and blessings that come from a generous heart and giving spirit.',
-        filePath: '/uploads/sample-joy.pdf',
-        featured: false
-    },
-    {
-        _id: '4',
-        title: 'Hope in Trials',
-        code: 'HT',
-        date: new Date('2023-09-24'),
-        author: 'Pastor James',
-        description: 'Finding hope and strength in God during difficult times and trials.',
-        filePath: '',
-        featured: false
-    }
-];
-*/
-
 // ===== MIDDLEWARE =====
 
 // Check if user is authenticated as admin
@@ -157,22 +137,15 @@ const requireAuth = (req, res, next) => {
 };
 
 // ===== ROUTES =====
-// ===== PDF PREVIEW ROUTE =====
-app.get('/preview/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'public/uploads', filename);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).send('PDF not found');
-    }
-    
-    res.render('pdf-preview', { 
-        filename: filename,
-        filePath: `/uploads/${filename}`
+
+// Health check route
+app.get('/health', (req, res) => {
+    res.status(200).json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
     });
 });
-// Homepage - Show only 3 recent messages
 
 // Homepage - Show only 3 recent messages
 app.get('/', async (req, res) => {
@@ -181,7 +154,6 @@ app.get('/', async (req, res) => {
         let totalMessages = 0;
         
         if (mongoose.connection.readyState === 1) {
-            // Get only 3 most recent messages for homepage
             messages = await Message.find().sort({ date: -1 }).limit(3);
             totalMessages = await Message.countDocuments();
             console.log('📥 Loaded', messages.length, 'recent messages for homepage from MongoDB');
@@ -212,7 +184,6 @@ app.get('/messages', async (req, res) => {
         let messages = [];
         
         if (mongoose.connection.readyState === 1) {
-            // Get messages with featured first, then by date
             messages = await Message.find().sort({ featured: -1, date: -1 });
             console.log('📥 Loaded', messages.length, 'messages for messages page from MongoDB');
         } else {
@@ -247,7 +218,6 @@ app.get('/search', async (req, res) => {
         const searchTerm = query.trim();
         
         if (mongoose.connection.readyState === 1) {
-            // Search in MongoDB (case-insensitive)
             messages = await Message.find({
                 $or: [
                     { title: { $regex: searchTerm, $options: 'i' } },
@@ -280,6 +250,21 @@ app.get('/search', async (req, res) => {
     }
 });
 
+// PDF Preview Route
+app.get('/preview/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'public/uploads', filename);
+    
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).send('PDF not found');
+    }
+    
+    res.render('pdf-preview', { 
+        filename: filename,
+        filePath: `/uploads/${filename}`
+    });
+});
+
 // Admin Search Messages (Protected)
 app.get('/admin-search', requireAuth, async (req, res) => {
     try {
@@ -292,30 +277,18 @@ app.get('/admin-search', requireAuth, async (req, res) => {
 
         const searchTerm = query.trim();
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // Search in MongoDB (case-insensitive)
-                messages = await Message.find({
-                    $or: [
-                        { title: { $regex: searchTerm, $options: 'i' } },
-                        { description: { $regex: searchTerm, $options: 'i' } },
-                        { author: { $regex: searchTerm, $options: 'i' } },
-                        { code: { $regex: searchTerm, $options: 'i' } }
-                    ]
-                }).sort({ date: -1 });
-                console.log('🔍 Admin search results from MongoDB:', messages.length, 'messages found');
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            // Search in temporary storage
-            messages = tempMessages.filter(message => 
-                message.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.code.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            console.log('🔍 Admin search results from temporary storage:', messages.length, 'messages found');
+        if (mongoose.connection.readyState === 1) {
+            messages = await Message.find({
+                $or: [
+                    { title: { $regex: searchTerm, $options: 'i' } },
+                    { description: { $regex: searchTerm, $options: 'i' } },
+                    { author: { $regex: searchTerm, $options: 'i' } },
+                    { code: { $regex: searchTerm, $options: 'i' } }
+                ]
+            }).sort({ date: -1 });
+            console.log('🔍 Admin search results from MongoDB:', messages.length, 'messages found');
+        } else {
+            console.log('❌ MongoDB not connected - cannot search');
         }
         
         res.render('admin', { 
@@ -336,16 +309,12 @@ app.get('/admin-search', requireAuth, async (req, res) => {
 // Get messages data for admin panel (JSON API)
 app.get('/messages-data', requireAuth, async (req, res) => {
     try {
-        let messages;
+        let messages = [];
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                messages = await Message.find().sort({ date: -1 });
-            } else {
-                messages = tempMessages;
-            }
-        } catch (dbError) {
-            messages = tempMessages;
+        if (mongoose.connection.readyState === 1) {
+            messages = await Message.find().sort({ date: -1 });
+        } else {
+            console.log('❌ MongoDB not connected');
         }
 
         res.json(messages);
@@ -399,16 +368,13 @@ app.get('/admin', requireAuth, (req, res) => {
 app.get('/edit/:id', requireAuth, async (req, res) => {
     try {
         const messageId = req.params.id;
-        let message;
+        let message = null;
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                message = await Message.findById(messageId);
-            } else {
-                message = tempMessages.find(msg => msg._id === messageId);
-            }
-        } catch (dbError) {
-            message = tempMessages.find(msg => msg._id === messageId);
+        if (mongoose.connection.readyState === 1) {
+            message = await Message.findById(messageId);
+        } else {
+            console.log('❌ MongoDB not connected - cannot edit message');
+            return res.status(500).send('Database not available');
         }
 
         if (!message) {
@@ -451,46 +417,27 @@ app.post('/update/:id', requireAuth, upload.single('messageFile'), async (req, r
             updatedMessage.filePath = '/uploads/' + req.file.filename;
         } else {
             // Keep existing file path
-            let existingMessage;
-            try {
-                if (mongoose.connection.readyState === 1) {
-                    existingMessage = await Message.findById(messageId);
-                } else {
-                    existingMessage = tempMessages.find(msg => msg._id === messageId);
-                }
-                updatedMessage.filePath = existingMessage?.filePath || '';
-            } catch (dbError) {
-                existingMessage = tempMessages.find(msg => msg._id === messageId);
+            if (mongoose.connection.readyState === 1) {
+                const existingMessage = await Message.findById(messageId);
                 updatedMessage.filePath = existingMessage?.filePath || '';
             }
         }
 
         console.log('📝 Admin updating message:', messageId, updatedMessage);
 
-        try {
-            if (mongoose.connection.readyState === 1) {
-                const result = await Message.findByIdAndUpdate(messageId, updatedMessage, { new: true });
-                if (result) {
-                    console.log('✅ Message updated in MongoDB Atlas');
-                } else {
-                    console.log('❌ Message not found in MongoDB');
-                    return res.status(404).send('Message not found');
-                }
+        if (mongoose.connection.readyState === 1) {
+            const result = await Message.findByIdAndUpdate(messageId, updatedMessage, { new: true });
+            if (result) {
+                console.log('✅ Message updated in MongoDB Atlas');
+                res.redirect('/admin?success=Message updated successfully');
             } else {
-                throw new Error('MongoDB not connected');
+                console.log('❌ Message not found in MongoDB');
+                res.status(404).send('Message not found');
             }
-        } catch (dbError) {
-            const messageIndex = tempMessages.findIndex(msg => msg._id === messageId);
-            if (messageIndex !== -1) {
-                tempMessages[messageIndex] = { ...tempMessages[messageIndex], ...updatedMessage };
-                console.log('✅ Message updated in temporary storage');
-            } else {
-                console.log('❌ Message not found in temporary storage');
-                return res.status(404).send('Message not found');
-            }
+        } else {
+            console.log('❌ MongoDB not connected - cannot update');
+            res.status(500).send('Database not available');
         }
-
-        res.redirect('/admin?success=Message updated successfully');
     } catch (err) {
         console.log('Update error:', err);
         res.status(500).send('Error updating message: ' + err.message);
@@ -503,35 +450,22 @@ app.post('/featured/:id', requireAuth, async (req, res) => {
         const messageId = req.params.id;
         console.log('⭐ Admin setting featured message:', messageId);
         
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // First, unfeature all other messages
-                await Message.updateMany({}, { featured: false });
-                // Then set this one as featured
-                const result = await Message.findByIdAndUpdate(messageId, { featured: true }, { new: true });
-                if (result) {
-                    console.log('✅ Message set as featured in MongoDB Atlas');
-                } else {
-                    console.log('❌ Message not found in MongoDB');
-                    return res.status(404).send('Message not found');
-                }
+        if (mongoose.connection.readyState === 1) {
+            // First, unfeature all other messages
+            await Message.updateMany({}, { featured: false });
+            // Then set this one as featured
+            const result = await Message.findByIdAndUpdate(messageId, { featured: true }, { new: true });
+            if (result) {
+                console.log('✅ Message set as featured in MongoDB Atlas');
+                res.redirect('/admin?success=Message set as featured successfully');
             } else {
-                throw new Error('MongoDB not connected');
+                console.log('❌ Message not found in MongoDB');
+                res.status(404).send('Message not found');
             }
-        } catch (dbError) {
-            // For temporary storage
-            tempMessages.forEach(msg => msg.featured = false);
-            const messageIndex = tempMessages.findIndex(msg => msg._id === messageId);
-            if (messageIndex !== -1) {
-                tempMessages[messageIndex].featured = true;
-                console.log('✅ Message set as featured in temporary storage');
-            } else {
-                console.log('❌ Message not found in temporary storage');
-                return res.status(404).send('Message not found');
-            }
+        } else {
+            console.log('❌ MongoDB not connected - cannot set featured');
+            res.status(500).send('Database not available');
         }
-
-        res.redirect('/admin?success=Message set as featured successfully');
     } catch (err) {
         console.log('Featured error:', err);
         res.status(500).send('Error setting featured message');
@@ -575,7 +509,6 @@ app.post('/upload', requireAuth, upload.single('messageFile'), async (req, res) 
 });
 
 // Delete Message (Protected - Admin only)
-// Delete Message (Protected - Admin only)
 app.post('/delete/:id', requireAuth, async (req, res) => {
     try {
         const messageId = req.params.id;
@@ -599,25 +532,6 @@ app.post('/delete/:id', requireAuth, async (req, res) => {
         res.status(500).send('Error deleting message');
     }
 });
-// Get messages data for admin panel (JSON API)
-app.get('/messages-data', requireAuth, async (req, res) => {
-    try {
-        let messages = [];
-        
-        if (mongoose.connection.readyState === 1) {
-            // Get all messages from MongoDB, sorted by date (newest first)
-            messages = await Message.find().sort({ date: -1 });
-        } else {
-            console.log('❌ MongoDB not connected');
-        }
-
-        // Send messages as JSON data (not HTML)
-        res.json(messages);
-    } catch (err) {
-        console.log('Error loading messages data:', err);
-        res.status(500).json({ error: 'Failed to load messages' });
-    }
-});
 
 // ===== ERROR HANDLING =====
 app.use((err, req, res, next) => {
@@ -635,28 +549,35 @@ app.use((req, res) => {
 });
 
 // ===== START SERVER =====
-app.listen(PORT, () => {
-    console.log('\n🎯 ===== CHURCH WEBSITE SERVER =====');
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📝 Website: http://localhost:${PORT}`);
-    console.log(`📚 All Messages: http://localhost:${PORT}/messages`);
-    console.log(`🔍 Search Messages: http://localhost:${PORT}/search`);
-    console.log(`🔐 Admin Login: http://localhost:${PORT}/admin-login`);
-    console.log(`⚙️  Admin Panel: http://localhost:${PORT}/admin (after login)`);
-    console.log(`✏️  Edit Messages: http://localhost:${PORT}/edit/:id`);
-    console.log(`⭐ Featured Messages: Enabled`);
+const startServer = async () => {
+    // Try to connect to MongoDB
+    await connectDB();
     
-    if (mongoose.connection.readyState === 1) {
-        console.log('🗄️  Database: MongoDB Atlas (Persistent)');
-    } else {
-        console.log('💾 Storage: Temporary (Data resets on server restart)');
-    }
-    console.log('✅ Admin authentication enabled');
-    console.log('✅ Separate messages page created');
-    console.log('✅ Homepage shows 3 recent messages only');
-    console.log('✅ Admin panel shows all messages with delete options');
-    console.log('✅ Search functionality added');
-    console.log('✅ Admin search functionality added');
-    console.log('✅ Message editing functionality added');
-    console.log('================================\n');
-});
+    app.listen(PORT, () => {
+        console.log('\n🎯 ===== CHURCH WEBSITE SERVER =====');
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`📝 Website: http://localhost:${PORT}`);
+        console.log(`📚 All Messages: http://localhost:${PORT}/messages`);
+        console.log(`🔍 Search Messages: http://localhost:${PORT}/search`);
+        console.log(`🔐 Admin Login: http://localhost:${PORT}/admin-login`);
+        console.log(`⚙️  Admin Panel: http://localhost:${PORT}/admin (after login)`);
+        console.log(`✏️  Edit Messages: http://localhost:${PORT}/edit/:id`);
+        console.log(`⭐ Featured Messages: Enabled`);
+        console.log(`📄 PDF Preview: Enabled`);
+        
+        if (mongoose.connection.readyState === 1) {
+            console.log('🗄️  Database: MongoDB Atlas (Persistent)');
+            console.log('✅ All database features enabled');
+        } else {
+            console.log('❌ Database: NOT CONNECTED');
+            console.log('💡 Please add MONGO_URI to your environment variables');
+            console.log('💾 Using temporary storage (data resets on restart)');
+        }
+        
+        console.log('✅ Admin authentication enabled');
+        console.log('✅ File upload functionality enabled');
+        console.log('================================\n');
+    });
+};
+
+startServer();
