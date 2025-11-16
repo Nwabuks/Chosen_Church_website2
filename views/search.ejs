@@ -24,6 +24,12 @@
             color: white;
             padding: 3rem 0;
         }
+        .search-suggestions {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
     </style>
 </head>
 <body>
@@ -109,7 +115,18 @@
                     <i class="fas fa-search fa-2x mb-3"></i>
                     <h4>No Messages Found</h4>
                     <p>We couldn't find any messages matching "<strong><%= searchQuery %></strong>".</p>
-                    <p>Try searching with different keywords or <a href="/messages" class="alert-link">browse all messages</a>.</p>
+                    
+                    <!-- Search Suggestions -->
+                    <div class="search-suggestions">
+                        <h5>Search Tips:</h5>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-lightbulb text-warning"></i> Try different keywords</li>
+                            <li><i class="fas fa-lightbulb text-warning"></i> Check your spelling</li>
+                            <li><i class="fas fa-lightbulb text-warning"></i> Search by author name</li>
+                            <li><i class="fas fa-lightbulb text-warning"></i> Use message codes (e.g., PF, MD)</li>
+                        </ul>
+                    </div>
+                    
                     <div class="mt-3">
                         <a href="/messages" class="btn btn-primary me-2">
                             <i class="fas fa-book-open"></i> View All Messages
@@ -125,10 +142,10 @@
                     <div class="message-card">
                         <div class="message-header">
                             <h3>
-                                <%= message.title %>
+                                <%= highlightText(message.title, searchQuery) %>
                             </h3>
                             <span class="message-code">
-                                <%= message.code %>
+                                <%= highlightText(message.code, searchQuery) %>
                             </span>
                         </div>
                         <div class="message-body">
@@ -141,16 +158,20 @@
                                     }) %>
                                 </span>
                                 <span><i class="far fa-user"></i> 
-                                    <%= message.author %>
+                                    <%= highlightText(message.author, searchQuery) %>
                                 </span>
                             </div>
                             <p class="message-description">
-                                <%= message.description %>
+                                <%= highlightText(message.description, searchQuery) %>
                             </p>
                             <div class="message-actions">
                                 <% if (message.filePath) { %>
                                     <a href="<%= message.filePath %>" class="btn btn-small" download>
                                         <i class="fas fa-download"></i> Download PDF
+                                    </a>
+                                    <!-- Add Preview Button -->
+                                    <a href="/preview/<%= message.filePath.split('/').pop() %>" class="btn btn-small btn-outline">
+                                        <i class="fas fa-eye"></i> Preview PDF
                                     </a>
                                 <% } else { %>
                                     <span class="text-muted">
@@ -230,6 +251,7 @@
         </div>
     </div>
 </footer>
+
     <!-- JavaScript -->
     <script>
         // Mobile menu toggle
@@ -253,29 +275,104 @@
             });
         });
 
-        // Focus on search input
-        document.querySelector('input[name="q"]')?.focus();
+        // Focus on search input and select all text
+        const searchInput = document.querySelector('input[name="q"]');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
 
-        // Client-side search highlighting
-        document.addEventListener('DOMContentLoaded', function() {
+        // Enhanced search highlighting
+        function highlightSearchTerms() {
             const searchQuery = '<%= searchQuery %>';
-            if (searchQuery && searchQuery.trim() !== '') {
-                const elements = document.querySelectorAll('.message-card h3, .message-card .message-code, .message-card .message-description, .message-card .message-meta span');
-                
-                elements.forEach(element => {
-                    const text = element.textContent || element.innerText;
-                    const regex = new RegExp(searchQuery, 'gi');
-                    const highlightedText = text.replace(regex, match => 
-                        `<span class="search-highlight">${match}</span>`
-                    );
-                    
-                    if (text !== highlightedText) {
-                        element.innerHTML = highlightedText;
-                    }
-                });
+            if (!searchQuery || searchQuery.trim() === '') return;
+
+            const searchTerms = searchQuery.toLowerCase().split(' ').filter(term => term.length > 2);
+            
+            if (searchTerms.length === 0) return;
+
+            // Highlight in message cards
+            document.querySelectorAll('.message-card').forEach(card => {
+                // Title
+                const title = card.querySelector('h3');
+                if (title) {
+                    let titleText = title.textContent;
+                    searchTerms.forEach(term => {
+                        const regex = new RegExp(term, 'gi');
+                        titleText = titleText.replace(regex, match => 
+                            '<span class="search-highlight">' + match + '</span>'
+                        );
+                    });
+                    title.innerHTML = titleText;
+                }
+
+                // Description
+                const description = card.querySelector('.message-description');
+                if (description) {
+                    let descText = description.textContent;
+                    searchTerms.forEach(term => {
+                        const regex = new RegExp(term, 'gi');
+                        descText = descText.replace(regex, match => 
+                            '<span class="search-highlight">' + match + '</span>'
+                        );
+                    });
+                    description.innerHTML = descText;
+                }
+
+                // Author
+                const authorSpans = card.querySelectorAll('.message-meta span');
+                if (authorSpans.length > 1) {
+                    let authorText = authorSpans[1].textContent;
+                    searchTerms.forEach(term => {
+                        const regex = new RegExp(term, 'gi');
+                        authorText = authorText.replace(regex, match => 
+                            '<span class="search-highlight">' + match + '</span>'
+                        );
+                    });
+                    authorSpans[1].innerHTML = authorText;
+                }
+
+                // Code
+                const code = card.querySelector('.message-code');
+                if (code) {
+                    let codeText = code.textContent;
+                    searchTerms.forEach(term => {
+                        const regex = new RegExp(term, 'gi');
+                        codeText = codeText.replace(regex, match => 
+                            '<span class="search-highlight">' + match + '</span>'
+                        );
+                    });
+                    code.innerHTML = codeText;
+                }
+            });
+        }
+
+        // Initialize highlighting when page loads
+        document.addEventListener('DOMContentLoaded', highlightSearchTerms);
+
+        // Quick search suggestions
+        document.addEventListener('keydown', function(e) {
+            if (e.target.name === 'q' && e.key === 'Enter') {
+                const searchTerm = e.target.value.trim();
+                if (searchTerm.length < 2) {
+                    e.preventDefault();
+                    alert('Please enter at least 2 characters to search.');
+                }
             }
         });
+
+        // Auto-expand search form on focus for mobile
+        if (searchInput) {
+            searchInput.addEventListener('focus', function() {
+                if (window.innerWidth < 768) {
+                    this.style.transform = 'scale(1.02)';
+                }
+            });
+
+            searchInput.addEventListener('blur', function() {
+                this.style.transform = 'scale(1)';
+            });
+        }
     </script>
 </body>
-
 </html>
