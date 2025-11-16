@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Message - The God of Chosen Answers Prayers</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .edit-container {
+            min-height: 80vh;
+            padding: 2rem 0;
+        }
+        .edit-header {
+            background: linear-gradient(135deg, var(--primary), #600000);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .edit-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+        }
+        .file-upload {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: #f0f4f8;
+        }
+        .current-file {
+            background: #e9f7ef;
+            border: 1px solid #d1f2e1;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <!-- Edit Header -->
+    <div class="edit-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-edit"></i> Edit Message</h1>
+                    <p class="mb-0">Update message details and files</p>
+                </div>
+                <div>
+                    <a href="/admin" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Admin
+                    </a>
+                    <a href="/admin-logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Content -->
+    <div class="container edit-container">
+        <!-- Admin Actions -->
+        <div class="admin-actions">
+            <a href="/admin" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Admin Panel
+            </a>
+            <a href="/" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> View Website
+            </a>
+        </div>
+
+        <!-- Edit Form -->
+        <div class="edit-section">
+            <h3 class="mb-4"><i class="fas fa-edit"></i> Edit Message: <%= message.title %></h3>
+            
+            <!-- Current File Info -->
+            <% if (message.filePath) { %>
+                <div class="current-file">
+                    <h5><i class="fas fa-file-pdf text-danger"></i> Current PDF File</h5>
+                    <p class="mb-2">
+                        <a href="<%= message.filePath %>" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i> View Current PDF
+                        </a>
+                        <a href="<%= message.filePath %>" download class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </p>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="removeFile" id="removeFile">
+                        <label class="form-check-label text-danger" for="removeFile">
+                            <i class="fas fa-trash"></i> Remove current PDF file
+                        </label>
+                    </div>
+                </div>
+            <% } %>
+
+            <form id="editForm" action="/update/<%= message._id %>" method="POST" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageTitle">Message Title *</label>
+                            <input type="text" class="form-control" id="messageTitle" name="title" 
+                                   value="<%= message.title %>" placeholder="Enter message title" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageCode">Message Code *</label>
+                            <input type="text" class="form-control" id="messageCode" name="code" 
+                                   value="<%= message.code %>" placeholder="e.g., PF, MD, JPEG" required>
+                            <small class="text-muted">Short code for the message (2-5 characters)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageDate">Date *</label>
+                            <input type="date" class="form-control" id="messageDate" name="date" 
+                                   value="<%= message.date.toISOString().split('T')[0] %>" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageAuthor">Author *</label>
+                            <input type="text" class="form-control" id="messageAuthor" name="author" 
+                                   value="<%= message.author %>" placeholder="Enter author name" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="messageDescription">Description *</label>
+                    <textarea class="form-control" id="messageDescription" name="description" 
+                              rows="4" placeholder="Enter message description" required><%= message.description %></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Update PDF File (Optional)</label>
+                    <div class="file-upload" id="fileUploadArea">
+                        <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                        <h5>Drop new PDF file here or click to browse</h5>
+                        <p class="text-muted">Maximum file size: 10MB. Leave empty to keep current file.</p>
+                        <input type="file" class="d-none" id="messageFile" name="messageFile" accept=".pdf">
+                        <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('messageFile').click()">
+                            <i class="fas fa-folder-open"></i> Choose New File
+                        </button>
+                        <div id="fileName" class="mt-2 text-success fw-bold"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-save"></i> Update Message
+                    </button>
+                    <a href="/admin" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Instructions -->
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> Editing Instructions</h5>
+            <ul class="mb-0">
+                <li>Update any field to correct mistakes</li>
+                <li>Check "Remove current PDF file" to delete the attached PDF</li>
+                <li>Upload a new PDF file to replace the current one</li>
+                <li>Leave PDF fields unchanged to keep the current file</li>
+                <li>All changes are saved immediately upon submission</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // File upload handling
+        const fileInput = document.getElementById('messageFile');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileNameDisplay = document.getElementById('fileName');
+        const editForm = document.getElementById('editForm');
+
+        // File selection handling
+        fileInput.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                fileNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                
+                // Validate file type
+                if (file.type !== 'application/pdf') {
+                    alert('Error: Only PDF files are allowed!');
+                    this.value = '';
+                    fileNameDisplay.textContent = '';
+                    fileNameDisplay.className = 'mt-2 text-danger fw-bold';
+                } else {
+                    fileNameDisplay.className = 'mt-2 text-success fw-bold';
+                }
+                
+                // Validate file size
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Error: File size must be less than 10MB!');
+                    this.value = '';
+                    fileNameDisplay.textContent = '';
+                }
+            }
+        });
+
+        // Drag and drop functionality
+        fileUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Click to select file
+        fileUploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Form validation
+        editForm.addEventListener('submit', function(e) {
+            const title = document.getElementById('messageTitle').value.trim();
+            const code = document.getElementById('messageCode').value.trim();
+            const date = document.getElementById('messageDate').value;
+            const author = document.getElementById('messageAuthor').value.trim();
+            const description = document.getElementById('messageDescription').value.trim();
+
+            let errors = [];
+
+            if (!title) errors.push('Message title is required');
+            if (!code) errors.push('Message code is required');
+            if (!date) errors.push('Date is required');
+            if (!author) errors.push('Author is required');
+            if (!description) errors.push('Description is required');
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
+            } else {
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                submitBtn.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>

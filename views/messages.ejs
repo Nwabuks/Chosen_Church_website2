@@ -4,9 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Messages - The God of Chosen Answers Prayers</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .search-highlight {
+            background-color: #fff3cd;
+            padding: 0.1rem 0.2rem;
+            border-radius: 3px;
+            font-weight: 600;
+            color: #856404;
+        }
+        .search-header {
+            background: linear-gradient(135deg, var(--primary), #600000);
+            color: white;
+            padding: 3rem 0;
+        }
+        .featured-message-section {
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        .featured-message-section .card {
+            border: 2px solid #ffc107;
+            box-shadow: 0 5px 20px rgba(255, 193, 7, 0.3);
+        }
+        .featured-message-content {
+            background: linear-gradient(135deg, #fff9e6, #fff3cd);
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -14,7 +43,7 @@
         <div class="container">
             <div class="header-content">
                 <div class="logo">
-                    <i class="fas fa-church"></i>
+                    <img src="/images/church-logo.png" alt="Church Logo" class="logo-image">
                     <h1>The God of Chosen Answers Prayers</h1>
                 </div>
                 <div class="mobile-menu">
@@ -35,10 +64,22 @@
     </header>
 
     <!-- Page Header -->
-    <section class="hero" style="padding: 4rem 0; background: linear-gradient(135deg, var(--primary), #600000);">
+    <section class="search-header">
         <div class="container">
-            <h1><i class="fas fa-book-open"></i> All Messages</h1>
-            <p class="mb-0">Browse through all our sermons and spiritual resources</p>
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-book-open"></i> All Messages</h1>
+                    <p class="mb-0">Browse through all our sermons and spiritual resources</p>
+                </div>
+                <div class="col-md-4">
+                    <form action="/search" method="GET" class="d-flex">
+                        <input type="text" name="q" class="form-control me-2" placeholder="Search messages..." required>
+                        <button type="submit" class="btn btn-light">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -84,6 +125,58 @@
                 </div>
             </div>
 
+            <!-- Featured Message Section -->
+            <% if (messages.length > 0 && messages[0].featured) { 
+                const featuredMessage = messages[0]; 
+            %>
+                <div class="featured-message-section">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-star"></i> <strong>Featured Message</strong>
+                                </div>
+                                <span class="badge bg-dark">Highlighted</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="featured-message-content">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h3 class="card-title text-warning"><%= featuredMessage.title %></h3>
+                                    <span class="message-code bg-warning text-dark"><%= featuredMessage.code %></span>
+                                </div>
+                                <div class="message-meta mb-3">
+                                    <span><i class="far fa-calendar"></i> 
+                                        <%= featuredMessage.date.toLocaleDateString('en-US', { 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric' 
+                                        }) %>
+                                    </span>
+                                    <span><i class="far fa-user"></i> <%= featuredMessage.author %></span>
+                                </div>
+                                                               <p class="card-text"><%= featuredMessage.description %></p>
+                                <div class="message-actions">
+    <% if (featuredMessage.filePath) { %>
+        <a href="<%= featuredMessage.filePath %>" class="btn btn-small" download>
+            <i class="fas fa-download"></i> Download
+        </a>
+        <!-- Add Preview Button -->
+        <a href="/preview/<%= featuredMessage.filePath.split('/').pop() %>" class="btn btn-small btn-outline">
+            <i class="fas fa-eye"></i> Preview
+        </a>
+    <% } else { %>
+        <span class="text-muted">
+            <i class="fas fa-file-pdf"></i> No PDF available
+        </span>
+    <% } %>
+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% } %>
+
             <!-- Database Status -->
             <div class="alert alert-info mb-4">
                 <i class="fas fa-database"></i> 
@@ -107,12 +200,21 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h3><%= messages.length %> Messages Available</h3>
                     <div class="text-muted">
-                        <i class="fas fa-filter"></i> Sorted by: Most Recent First
+                        <i class="fas fa-filter"></i> Sorted by: Featured First, Then Most Recent
                     </div>
                 </div>
 
                 <div class="messages-grid">
-                    <% messages.forEach(function(message) { %>
+                    <% 
+                    let startIndex = 0;
+                    // Skip the first message if it's featured (already shown above)
+                    if (messages.length > 0 && messages[0].featured) {
+                        startIndex = 1;
+                    }
+                    
+                    for (let i = startIndex; i < messages.length; i++) { 
+                        const message = messages[i];
+                    %>
                     <div class="message-card">
                         <div class="message-header">
                             <h3><%= message.title %></h3>
@@ -143,7 +245,7 @@
                             </div>
                         </div>
                     </div>
-                    <% }); %>
+                    <% } %>
                 </div>
 
                 <!-- Back to Top Button -->
@@ -158,48 +260,56 @@
     </main>
 
     <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-column">
-                    <h3>Contact Us</h3>
-                    <ul>
-                        <li><i class="fas fa-map-marker-alt"></i> The Chosen Estate, Amuwo Odofin, along Oshodi Apapa Express Way near Ijesha Bus Stop, Lagos, Nigeria</li>
-                        <li><i class="fas fa-phone"></i> (123) 456-7890</li>
-                        <li><i class="fas fa-envelope"></i> info@churchofchosen.com</li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Quick Links</h3>
-                    <ul>
-                        <li><a href="/">Home</a></li>
-                        <li><a href="/messages">Messages</a></li>
-                        <li><a href="#" class="blurred-link">Testimonies</a></li>
-                        <li><a href="#" class="blurred-link">Events</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Service Times</h3>
-                    <ul>
-                        <li>Sunday: 9:00 AM & 11:00 AM</li>
-                        <li>Wednesday: 7:00 PM</li>
-                        <li>Friday: Prayer @ 6:30 PM</li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Connect With Us</h3>
-                    <ul>
-                        <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
-                        <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
-                        <li><a href="#"><i class="fab fa-youtube"></i> YouTube</a></li>
-                    </ul>
-                </div>
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>Contact Us</h3>
+                <ul>
+                    <li><i class="fas fa-map-marker-alt"></i> The Chosen Estate, Amuwo Odofin, along Oshodi Apapa Express Way near Ijesha Bus Stop, Lagos, Nigeria</li>
+                    <li><i class="fas fa-phone"></i> (123) 456-7890</li>
+                    <li><i class="fas fa-envelope"></i> info@churchofchosen.com</li>
+                </ul>
             </div>
-            <div class="copyright">
-                <p>&copy; 2023 The God of Chosen Answers Prayers. All Rights Reserved.</p>
+            <div class="footer-column">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/messages">Messages</a></li>
+                    <li><a href="#" class="blurred-link">Testimonies</a></li>
+                    <li><a href="#" class="blurred-link">Events</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h3>Weekly Services</h3>
+                <ul>
+                    <li><strong>Sunday:</strong> Branch Services (1st & 3rd) - 8:00 AM</li>
+                    <li><strong>Sunday:</strong> HQ Combined Service (2nd & Last) - 8:00 AM</li>
+                    <li><strong>Monday:</strong> Workers & Leaders Vigil - 11:00 PM</li>
+                    <li><strong>Tuesday:</strong> HQ Revival Hour - 8:00 AM & 5:00 PM</li>
+                    <li><strong>Tuesday:</strong> Local Branches Revival - 5:00 PM</li>
+                    <li><strong>Wednesday:</strong> New Convert Class - 5:00 PM</li>
+                    <li><strong>Thursday:</strong> Deliverance & Counseling - 8:00 AM</li>
+                    <li><strong>Friday:</strong> General Vigil - 10:00 PM</li>
+                    <li><strong>Saturday:</strong> Workers' Meeting / Bible Study - 9:00 AM</li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h3>Connect With Us</h3>
+                <ul>
+                    <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
+                    <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
+                    <li><a href="#"><i class="fab fa-youtube"></i> YouTube</a></li>
+                    <li><a href="#"><i class="fas fa-globe"></i> Official Website</a></li>
+                </ul>
             </div>
         </div>
-    </footer>
+        <div class="copyright">
+            <p>&copy; 2023 The Lord's Chosen Charismatic Revival Ministries. All Rights Reserved.</p>
+        </div>
+    </div>
+</footer>
 
     <!-- JavaScript -->
     <script>
