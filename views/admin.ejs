@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel | ChiBooks</title>
+    <title>Admin Panel - The God of Chosen Answers Prayers</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -354,6 +354,7 @@
                 <li>Use the search feature to quickly find specific messages</li>
                 <li>Click "Edit" to modify existing messages and fix mistakes</li>
                 <li>Click "Feature" to set a message as featured (appears at top of messages page)</li>
+                <li>Click "Unfeature" to remove featured status from a message</li>
                 <li>Only one message can be featured at a time</li>
             </ul>
         </div>
@@ -457,6 +458,29 @@
             submitBtn.disabled = false;
         });
 
+        // Unfeature Message Function
+        function unfeatureMessage(messageId) {
+            if (confirm('Are you sure you want to remove this message from featured?')) {
+                fetch(`/unfeature/${messageId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Error unfeaturing message');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error unfeaturing message');
+                });
+            }
+        }
+
         // Load and display messages
         async function loadMessages() {
             try {
@@ -536,13 +560,17 @@
                                     <a href="/edit/${message._id}" class="btn btn-primary btn-sm me-2">
                                         <i class="fas fa-edit"></i> Edit
                                     </a>
-                                    ${!message.featured ? `
+                                    ${message.featured ? `
+                                    <button onclick="unfeatureMessage('${message._id}')" class="btn btn-secondary btn-sm me-2" title="Remove from Featured">
+                                        <i class="fas fa-star"></i> Unfeature
+                                    </button>
+                                    ` : `
                                     <form action="/featured/${message._id}" method="POST" style="display: inline;">
                                         <button type="submit" class="btn btn-warning btn-sm me-2" title="Set as Featured Message">
                                             <i class="fas fa-star"></i> Feature
                                         </button>
                                     </form>
-                                    ` : ''}
+                                    `}
                                     <form action="/delete/${message._id}" method="POST" onsubmit="return confirm('Are you sure you want to delete \"${message.title}\"? This action cannot be undone.')" style="display: inline;">
                                         <button type="submit" class="btn btn-danger btn-sm">
                                             <i class="fas fa-trash"></i> Delete
@@ -568,5 +596,4 @@
         document.addEventListener('DOMContentLoaded', loadMessages);
     </script>
 </body>
-
 </html>
