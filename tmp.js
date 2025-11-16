@@ -71,8 +71,7 @@ const messageSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     author: { type: String, required: true },
     description: { type: String, required: true },
-    filePath: { type: String, default: '' },
-    featured: { type: Boolean, default: false }
+    filePath: { type: String, default: '' }
 }, {
     timestamps: true
 });
@@ -117,8 +116,7 @@ let tempMessages = [
         date: new Date('2023-10-15'),
         author: 'Pastor John',
         description: 'Exploring how faith can move mountains in our daily lives and strengthen our relationship with God.',
-        filePath: '/uploads/sample-faith.pdf',
-        featured: true
+        filePath: '/uploads/sample-faith.pdf'
     },
     {
         _id: '2', 
@@ -127,8 +125,7 @@ let tempMessages = [
         date: new Date('2023-10-08'),
         author: 'Pastor Mark',
         description: 'Understanding God\'s infinite mercy and how it transforms our lives when we accept it.',
-        filePath: '/uploads/sample-mercy.pdf',
-        featured: false
+        filePath: '/uploads/sample-mercy.pdf'
     },
     {
         _id: '3',
@@ -137,8 +134,7 @@ let tempMessages = [
         date: new Date('2023-10-01'),
         author: 'Pastor Sarah',
         description: 'Discovering the joy and blessings that come from a generous heart and giving spirit.',
-        filePath: '/uploads/sample-joy.pdf',
-        featured: false
+        filePath: '/uploads/sample-joy.pdf'
     },
     {
         _id: '4',
@@ -147,8 +143,7 @@ let tempMessages = [
         date: new Date('2023-09-24'),
         author: 'Pastor James',
         description: 'Finding hope and strength in God during difficult times and trials.',
-        filePath: '',
-        featured: false
+        filePath: ''
     }
 ];
 
@@ -164,21 +159,7 @@ const requireAuth = (req, res, next) => {
 };
 
 // ===== ROUTES =====
-// ===== PDF PREVIEW ROUTE =====
-app.get('/preview/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(__dirname, 'public/uploads', filename);
-    
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).send('PDF not found');
-    }
-    
-    res.render('pdf-preview', { 
-        filename: filename,
-        filePath: `/uploads/${filename}`
-    });
-});
+
 // Homepage - Show only 3 recent messages
 app.get('/', async (req, res) => {
     try {
@@ -220,7 +201,7 @@ app.get('/', async (req, res) => {
     }
 });
 
-// Messages Page - Show ALL messages with featured first
+// Messages Page - Show ALL messages
 app.get('/messages', async (req, res) => {
     try {
         let messages;
@@ -228,20 +209,14 @@ app.get('/messages', async (req, res) => {
         
         try {
             if (mongoose.connection.readyState === 1) {
-                // Get messages with featured first, then by date
-                messages = await Message.find().sort({ featured: -1, date: -1 });
+                messages = await Message.find().sort({ date: -1 });
                 usingMongoDB = true;
                 console.log('📥 Loaded', messages.length, 'messages for messages page');
             } else {
                 throw new Error('MongoDB not connected');
             }
         } catch (dbError) {
-            // Sort temp messages: featured first, then by date
-            messages = [...tempMessages].sort((a, b) => {
-                if (a.featured && !b.featured) return -1;
-                if (!a.featured && b.featured) return 1;
-                return new Date(b.date) - new Date(a.date);
-            });
+            messages = tempMessages;
             console.log('📥 Loaded', messages.length, 'messages from temporary storage');
         }
         
@@ -257,118 +232,6 @@ app.get('/messages', async (req, res) => {
             isAdmin: false,
             usingMongoDB: false
         });
-    }
-});
-
-// Search Messages
-app.get('/search', async (req, res) => {
-    try {
-        const query = req.query.q;
-        let messages = [];
-        let usingMongoDB = false;
-        
-        if (!query || query.trim() === '') {
-            return res.redirect('/messages');
-        }
-
-        const searchTerm = query.trim();
-        
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // Search in MongoDB (case-insensitive)
-                messages = await Message.find({
-                    $or: [
-                        { title: { $regex: searchTerm, $options: 'i' } },
-                        { description: { $regex: searchTerm, $options: 'i' } },
-                        { author: { $regex: searchTerm, $options: 'i' } },
-                        { code: { $regex: searchTerm, $options: 'i' } }
-                    ]
-                }).sort({ date: -1 });
-                usingMongoDB = true;
-                console.log('🔍 Search results from MongoDB:', messages.length, 'messages found');
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            // Search in temporary storage
-            messages = tempMessages.filter(message => 
-                message.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.code.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            console.log('🔍 Search results from temporary storage:', messages.length, 'messages found');
-        }
-        
-        res.render('search', { 
-            messages: messages, 
-            isAdmin: false,
-            usingMongoDB: usingMongoDB,
-            searchQuery: searchTerm,
-            resultsCount: messages.length
-        });
-    } catch (err) {
-        console.log('Search error:', err);
-        res.render('search', { 
-            messages: [], 
-            isAdmin: false,
-            usingMongoDB: false,
-            searchQuery: req.query.q || '',
-            resultsCount: 0
-        });
-    }
-});
-
-// Admin Search Messages (Protected)
-app.get('/admin-search', requireAuth, async (req, res) => {
-    try {
-        const query = req.query.q;
-        let messages = [];
-        
-        if (!query || query.trim() === '') {
-            return res.redirect('/admin');
-        }
-
-        const searchTerm = query.trim();
-        
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // Search in MongoDB (case-insensitive)
-                messages = await Message.find({
-                    $or: [
-                        { title: { $regex: searchTerm, $options: 'i' } },
-                        { description: { $regex: searchTerm, $options: 'i' } },
-                        { author: { $regex: searchTerm, $options: 'i' } },
-                        { code: { $regex: searchTerm, $options: 'i' } }
-                    ]
-                }).sort({ date: -1 });
-                console.log('🔍 Admin search results from MongoDB:', messages.length, 'messages found');
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            // Search in temporary storage
-            messages = tempMessages.filter(message => 
-                message.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                message.code.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            console.log('🔍 Admin search results from temporary storage:', messages.length, 'messages found');
-        }
-        
-        res.render('admin', { 
-            messages: messages, 
-            isAuthenticated: true,
-            usingMongoDB: mongoose.connection.readyState === 1,
-            searchQuery: searchTerm,
-            isSearchResults: true,
-            resultsCount: messages.length,
-            success: null
-        });
-    } catch (err) {
-        console.log('Admin search error:', err);
-        res.redirect('/admin');
     }
 });
 
@@ -434,149 +297,6 @@ app.get('/admin', requireAuth, (req, res) => {
     });
 });
 
-// Edit Message Page (Protected - Admin only)
-app.get('/edit/:id', requireAuth, async (req, res) => {
-    try {
-        const messageId = req.params.id;
-        let message;
-        
-        try {
-            if (mongoose.connection.readyState === 1) {
-                message = await Message.findById(messageId);
-            } else {
-                message = tempMessages.find(msg => msg._id === messageId);
-            }
-        } catch (dbError) {
-            message = tempMessages.find(msg => msg._id === messageId);
-        }
-
-        if (!message) {
-            return res.status(404).send('Message not found');
-        }
-
-        res.render('edit-message', { 
-            message: message,
-            isAuthenticated: true,
-            usingMongoDB: mongoose.connection.readyState === 1
-        });
-    } catch (err) {
-        console.log('Edit page error:', err);
-        res.status(500).send('Error loading edit page');
-    }
-});
-
-// Update Message (Protected - Admin only)
-app.post('/update/:id', requireAuth, upload.single('messageFile'), async (req, res) => {
-    try {
-        const messageId = req.params.id;
-        const { title, code, date, author, description, removeFile } = req.body;
-        
-        if (!title || !code || !date || !author || !description) {
-            return res.status(400).send('Please fill in all required fields');
-        }
-
-        const updatedMessage = {
-            title: title,
-            code: code,
-            date: new Date(date),
-            author: author,
-            description: description
-        };
-
-        // Handle file updates
-        if (removeFile === 'on') {
-            updatedMessage.filePath = '';
-        } else if (req.file) {
-            updatedMessage.filePath = '/uploads/' + req.file.filename;
-        } else {
-            // Keep existing file path
-            let existingMessage;
-            try {
-                if (mongoose.connection.readyState === 1) {
-                    existingMessage = await Message.findById(messageId);
-                } else {
-                    existingMessage = tempMessages.find(msg => msg._id === messageId);
-                }
-                updatedMessage.filePath = existingMessage?.filePath || '';
-            } catch (dbError) {
-                existingMessage = tempMessages.find(msg => msg._id === messageId);
-                updatedMessage.filePath = existingMessage?.filePath || '';
-            }
-        }
-
-        console.log('📝 Admin updating message:', messageId, updatedMessage);
-
-        try {
-            if (mongoose.connection.readyState === 1) {
-                const result = await Message.findByIdAndUpdate(messageId, updatedMessage, { new: true });
-                if (result) {
-                    console.log('✅ Message updated in MongoDB Atlas');
-                } else {
-                    console.log('❌ Message not found in MongoDB');
-                    return res.status(404).send('Message not found');
-                }
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            const messageIndex = tempMessages.findIndex(msg => msg._id === messageId);
-            if (messageIndex !== -1) {
-                tempMessages[messageIndex] = { ...tempMessages[messageIndex], ...updatedMessage };
-                console.log('✅ Message updated in temporary storage');
-            } else {
-                console.log('❌ Message not found in temporary storage');
-                return res.status(404).send('Message not found');
-            }
-        }
-
-        res.redirect('/admin?success=Message updated successfully');
-    } catch (err) {
-        console.log('Update error:', err);
-        res.status(500).send('Error updating message: ' + err.message);
-    }
-});
-
-// Set Featured Message (Protected - Admin only)
-app.post('/featured/:id', requireAuth, async (req, res) => {
-    try {
-        const messageId = req.params.id;
-        console.log('⭐ Admin setting featured message:', messageId);
-        
-        try {
-            if (mongoose.connection.readyState === 1) {
-                // First, unfeature all other messages
-                await Message.updateMany({}, { featured: false });
-                // Then set this one as featured
-                const result = await Message.findByIdAndUpdate(messageId, { featured: true }, { new: true });
-                if (result) {
-                    console.log('✅ Message set as featured in MongoDB Atlas');
-                } else {
-                    console.log('❌ Message not found in MongoDB');
-                    return res.status(404).send('Message not found');
-                }
-            } else {
-                throw new Error('MongoDB not connected');
-            }
-        } catch (dbError) {
-            // For temporary storage
-            tempMessages.forEach(msg => msg.featured = false);
-            const messageIndex = tempMessages.findIndex(msg => msg._id === messageId);
-            if (messageIndex !== -1) {
-                tempMessages[messageIndex].featured = true;
-                console.log('✅ Message set as featured in temporary storage');
-            } else {
-                console.log('❌ Message not found in temporary storage');
-                return res.status(404).send('Message not found');
-            }
-        }
-
-        res.redirect('/admin?success=Message set as featured successfully');
-    } catch (err) {
-        console.log('Featured error:', err);
-        res.status(500).send('Error setting featured message');
-    }
-});
-
 // Upload Message (Protected - Admin only)
 app.post('/upload', requireAuth, upload.single('messageFile'), async (req, res) => {
     try {
@@ -592,8 +312,7 @@ app.post('/upload', requireAuth, upload.single('messageFile'), async (req, res) 
             date: new Date(date),
             author: author,
             description: description,
-            filePath: req.file ? '/uploads/' + req.file.filename : '',
-            featured: false
+            filePath: req.file ? '/uploads/' + req.file.filename : ''
         };
 
         console.log('📤 Admin uploading message:', newMessage);
@@ -674,11 +393,8 @@ app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📝 Website: http://localhost:${PORT}`);
     console.log(`📚 All Messages: http://localhost:${PORT}/messages`);
-    console.log(`🔍 Search Messages: http://localhost:${PORT}/search`);
     console.log(`🔐 Admin Login: http://localhost:${PORT}/admin-login`);
     console.log(`⚙️  Admin Panel: http://localhost:${PORT}/admin (after login)`);
-    console.log(`✏️  Edit Messages: http://localhost:${PORT}/edit/:id`);
-    console.log(`⭐ Featured Messages: Enabled`);
     
     if (mongoose.connection.readyState === 1) {
         console.log('🗄️  Database: MongoDB Atlas (Persistent)');
@@ -689,8 +405,5 @@ app.listen(PORT, () => {
     console.log('✅ Separate messages page created');
     console.log('✅ Homepage shows 3 recent messages only');
     console.log('✅ Admin panel shows all messages with delete options');
-    console.log('✅ Search functionality added');
-    console.log('✅ Admin search functionality added');
-    console.log('✅ Message editing functionality added');
     console.log('================================\n');
 });
