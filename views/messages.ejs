@@ -3,12 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Messages | ChiBooks</title>
+    <title>Admin Panel - The God of Chosen Answers Prayers</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
     <style>
+        .admin-container {
+            min-height: 80vh;
+            padding: 2rem 0;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, var(--primary), #600000);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .upload-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .messages-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .search-section {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
+        }
+        .file-upload {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: #f0f4f8;
+        }
+        .file-upload.dragover {
+            border-color: var(--secondary);
+            background: #fff9e6;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .back-to-home {
+            background: #6c757d;
+        }
+        .back-to-home:hover {
+            background: #5a6268;
+        }
+        .message-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .message-item {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+        .message-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+        .message-title {
+            font-weight: 600;
+            color: var(--primary);
+            flex: 1;
+            margin-right: 1rem;
+        }
+        .message-code {
+            background: var(--secondary);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .message-meta {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-bottom: 0.5rem;
+        }
+        .message-description {
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
         .search-highlight {
             background-color: #fff3cd;
             padding: 0.1rem 0.2rem;
@@ -16,334 +145,455 @@
             font-weight: 600;
             color: #856404;
         }
-        .search-header {
-            background: linear-gradient(135deg, var(--primary), #600000);
-            color: white;
-            padding: 3rem 0;
-        }
-        .featured-message-section {
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-        .featured-message-section .card {
-            border: 2px solid #ffc107;
-            box-shadow: 0 5px 20px rgba(255, 193, 7, 0.3);
-        }
-        .featured-message-content {
-            background: linear-gradient(135deg, #fff9e6, #fff3cd);
-            padding: 1.5rem;
+        .search-results-header {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-left: 4px solid var(--info);
+            padding: 1rem;
             border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+        .featured-badge {
+            background: #ffc107;
+            color: #212529;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
         }
     </style>
 </head>
-<body>
-    <!-- Header -->
-    <header>
+<body class="admin-page">
+    <!-- Admin Header -->
+    <div class="admin-header">
         <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <img src="/images/church-logo.png" alt="Church Logo" class="logo-image">
-                    <h1>The God of Chosen Answers Prayers</h1>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-cogs"></i> Admin Panel</h1>
+                    <p class="mb-0">The God of Chosen Answers Prayers - Message Management</p>
                 </div>
-                <div class="mobile-menu">
-                    <i class="fas fa-bars"></i>
-                </div>
-                <nav>
-                    <ul>
-                        <li><a href="/">Home</a></li>
-                        <li><a href="/messages" class="active">Messages</a></li>
-                        <li><a href="#" class="blurred">Testimonies</a></li>
-                        <li><a href="#" class="blurred">Events/News</a></li>
-                        <li><a href="#" class="blurred">About</a></li>
-                        <li><a href="/admin-login">Admin</a></li>
-                    </ul>
-                </nav>
-            </div>
-        </div>
-    </header>
-
-    <!-- Page Header -->
-    <section class="search-header">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1><i class="fas fa-book-open"></i> All Messages</h1>
-                    <p class="mb-0">Browse through all our sermons and spiritual resources</p>
-                </div>
-                <div class="col-md-4">
-                    <form action="/search" method="GET" class="d-flex">
-                        <input type="text" name="q" class="form-control me-2" placeholder="Search messages..." required>
-                        <button type="submit" class="btn btn-light">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Messages Content -->
-    <main class="main-content">
-        <div class="container">
-            <!-- Page Info -->
-            <div class="row mb-4">
-                <div class="col-md-8">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="/">Home</a></li>
-                            <li class="breadcrumb-item active">All Messages</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div class="col-md-4 text-end">
-                    <a href="/" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left"></i> Back to Home
+                <div>
+                    <a href="/" class="btn btn-light me-2">
+                        <i class="fas fa-home"></i> View Website
+                    </a>
+                    <a href="/admin-logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Search Section -->
-            <div class="card mb-4">
+    <!-- Admin Content -->
+    <div class="container admin-container">
+        <!-- Success Message -->
+        <% if (success) { %>
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle"></i> <%= success %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="card">
                 <div class="card-body">
-                    <div class="row align-items-center">
+                    <h5 class="card-title"><i class="fas fa-search"></i> Search Messages</h5>
+                    <p class="text-muted mb-3">Search messages by title, description, author, or code to find specific ones to manage.</p>
+                    
+                    <form action="/admin-search" method="GET" class="row g-3 align-items-end">
                         <div class="col-md-8">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-search"></i> Search Messages
-                            </h5>
-                            <p class="text-muted mb-0">Search by title, description, author, or code</p>
+                            <label for="adminSearch" class="form-label">Search Term</label>
+                            <input type="text" class="form-control" id="adminSearch" name="q" 
+                                   placeholder="Enter title, description, author, or code..." 
+                                   value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>">
                         </div>
-                        <div class="col-md-4">
-                            <form action="/search" method="GET" class="d-flex">
-                                <input type="text" name="q" class="form-control me-2" placeholder="Search messages..." required>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </form>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Search
+                            </button>
                         </div>
-                    </div>
+                        <div class="col-md-2">
+                            <% if (typeof isSearchResults !== 'undefined' && isSearchResults) { %>
+                                <a href="/admin" class="btn btn-outline-secondary w-100">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            <% } %>
+                        </div>
+                    </form>
+
+                    <!-- Search Results Info -->
+                    <% if (typeof isSearchResults !== 'undefined' && isSearchResults) { %>
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="fas fa-info-circle"></i> 
+                            Found <strong><%= resultsCount %></strong> message<%= resultsCount !== 1 ? 's' : '' %> 
+                            <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
+                                matching "<strong><%= searchQuery %></strong>"
+                            <% } %>
+                        </div>
+                    <% } %>
                 </div>
             </div>
+        </div>
 
-            <!-- Featured Message Section -->
-            <% if (messages.length > 0 && messages[0].featured) { 
-                const featuredMessage = messages[0]; 
-            %>
-                <div class="featured-message-section">
-                    <div class="card border-warning">
-                        <div class="card-header bg-warning text-dark">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <i class="fas fa-star"></i> <strong>Featured Message</strong>
-                                </div>
-                                <span class="badge bg-dark">Highlighted</span>
-                            </div>
+        <!-- Admin Actions -->
+        <div class="admin-actions">
+            <a href="/" class="btn back-to-home">
+                <i class="fas fa-home"></i> View Website
+            </a>
+            <a href="/messages" class="btn btn-info">
+                <i class="fas fa-eye"></i> View Public Messages
+            </a>
+            <button class="btn btn-warning" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <h3 class="mb-4"><i class="fas fa-upload"></i> Upload New Message</h3>
+            
+            <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageTitle">Message Title *</label>
+                            <input type="text" class="form-control" id="messageTitle" name="title" 
+                                   placeholder="Enter message title" required>
                         </div>
-                        <div class="card-body">
-                            <div class="featured-message-content">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <h3 class="card-title text-warning"><%= featuredMessage.title %></h3>
-                                    <span class="message-code bg-warning text-dark"><%= featuredMessage.code %></span>
-                                </div>
-                                <div class="message-meta mb-3">
-                                    <span><i class="far fa-calendar"></i> 
-                                        <%= featuredMessage.date.toLocaleDateString('en-US', { 
-                                            year: 'numeric', 
-                                            month: 'long', 
-                                            day: 'numeric' 
-                                        }) %>
-                                    </span>
-                                    <span><i class="far fa-user"></i> <%= featuredMessage.author %></span>
-                                </div>
-                                                               <p class="card-text"><%= featuredMessage.description %></p>
-                                <div class="message-actions">
-    <% if (featuredMessage.filePath) { %>
-        <a href="<%= featuredMessage.filePath %>" class="btn btn-small" download>
-            <i class="fas fa-download"></i> Download
-        </a>
-        <!-- Add Preview Button -->
-        <a href="/preview/<%= featuredMessage.filePath.split('/').pop() %>" class="btn btn-small btn-outline">
-            <i class="fas fa-eye"></i> Preview
-        </a>
-    <% } else { %>
-        <span class="text-muted">
-            <i class="fas fa-file-pdf"></i> No PDF available
-        </span>
-    <% } %>
-</div>
-                            </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageCode">Message Code *</label>
+                            <input type="text" class="form-control" id="messageCode" name="code" 
+                                   placeholder="e.g., PF, MD, JPEG" required>
+                            <small class="text-muted">Short code for the message (2-5 characters)</small>
                         </div>
                     </div>
                 </div>
-            <% } %>
 
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageDate">Date *</label>
+                            <input type="date" class="form-control" id="messageDate" name="date" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="messageAuthor">Author *</label>
+                            <input type="text" class="form-control" id="messageAuthor" name="author" 
+                                   placeholder="Enter author name" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="messageDescription">Description *</label>
+                    <textarea class="form-control" id="messageDescription" name="description" 
+                              rows="4" placeholder="Enter message description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Upload PDF File (Optional)</label>
+                    <div class="file-upload" id="fileUploadArea">
+                        <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
+                        <h5>Drop PDF file here or click to browse</h5>
+                        <p class="text-muted">Maximum file size: 10MB</p>
+                        <input type="file" class="d-none" id="messageFile" name="messageFile" accept=".pdf">
+                        <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('messageFile').click()">
+                            <i class="fas fa-folder-open"></i> Choose File
+                        </button>
+                        <div id="fileName" class="mt-2 text-success fw-bold"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-upload"></i> Upload Message
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-redo"></i> Reset Form
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Messages Management Section -->
+        <div class="messages-section">
+            <h3 class="mb-4"><i class="fas fa-list"></i> Manage Existing Messages</h3>
+            
             <!-- Database Status -->
             <div class="alert alert-info mb-4">
                 <i class="fas fa-database"></i> 
                 <% if (usingMongoDB) { %>
-                    Connected to MongoDB Atlas - <%= messages.length %> messages available
+                    Connected to MongoDB Atlas - All changes are permanent
                 <% } else { %>
-                    Using temporary storage - <%= messages.length %> messages available
+                    Using temporary storage - Changes will reset on server restart
                 <% } %>
             </div>
 
-            <!-- Messages Grid -->
-            <% if (messages.length === 0) { %>
-                <div class="alert alert-warning text-center">
-                    <i class="fas fa-info-circle fa-2x mb-3"></i>
-                    <h4>No Messages Available</h4>
-                    <p>There are no messages available at the moment. Please check back later for new sermons and resources.</p>
-                    <a href="/" class="btn btn-primary">Return to Homepage</a>
+            <!-- Messages will be loaded here via JavaScript -->
+            <div id="messagesList" class="message-list">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                    <p>Loading messages...</p>
                 </div>
-            <% } else { %>
-                <!-- Messages Counter -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3><%= messages.length %> Messages Available</h3>
-                    <div class="text-muted">
-                        <i class="fas fa-filter"></i> Sorted by: Featured First, Then Most Recent
-                    </div>
-                </div>
-
-                <div class="messages-grid">
-                    <% 
-                    let startIndex = 0;
-                    // Skip the first message if it's featured (already shown above)
-                    if (messages.length > 0 && messages[0].featured) {
-                        startIndex = 1;
-                    }
-                    
-                    for (let i = startIndex; i < messages.length; i++) { 
-                        const message = messages[i];
-                    %>
-                    <div class="message-card">
-                        <div class="message-header">
-                            <h3><%= message.title %></h3>
-                            <span class="message-code"><%= message.code %></span>
-                        </div>
-                        <div class="message-body">
-                            <div class="message-meta">
-                                <span><i class="far fa-calendar"></i> 
-                                    <%= message.date.toLocaleDateString('en-US', { 
-                                        year: 'numeric', 
-                                        month: 'long', 
-                                        day: 'numeric' 
-                                    }) %>
-                                </span>
-                                <span><i class="far fa-user"></i> <%= message.author %></span>
-                            </div>
-                            <p class="message-description"><%= message.description %></p>
-                            <div class="message-actions">
-                                <% if (message.filePath) { %>
-                                    <a href="<%= message.filePath %>" class="btn btn-small" download>
-                                        <i class="fas fa-download"></i> Download PDF
-                                    </a>
-                                <% } else { %>
-                                    <span class="text-muted">
-                                        <i class="fas fa-file-pdf"></i> No PDF available
-                                    </span>
-                                <% } %>
-                            </div>
-                        </div>
-                    </div>
-                    <% } %>
-                </div>
-
-                <!-- Back to Top Button -->
-                <div class="text-center mt-4">
-                    <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
-                            class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-up"></i> Back to Top
-                    </button>
-                </div>
-            <% } %>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <!-- Footer -->
-<footer>
-    <div class="container">
-        <div class="footer-content">
-            <div class="footer-column">
-                <h3>Contact Us</h3>
-                <ul>
-                    <li><i class="fas fa-map-marker-alt"></i> The Chosen Estate, Amuwo Odofin, along Oshodi Apapa Express Way near Ijesha Bus Stop, Lagos, Nigeria</li>
-                    <li><i class="fas fa-phone"></i> (123) 456-7890</li>
-                    <li><i class="fas fa-envelope"></i> info@churchofchosen.com</li>
-                </ul>
-            </div>
-            <div class="footer-column">
-                <h3>Quick Links</h3>
-                <ul>
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/messages">Messages</a></li>
-                    <li><a href="#" class="blurred-link">Testimonies</a></li>
-                    <li><a href="#" class="blurred-link">Events</a></li>
-                </ul>
-            </div>
-            <div class="footer-column">
-                <h3>Weekly Services</h3>
-                <ul>
-                    <li><strong>Sunday:</strong> Branch Services (1st & 3rd) - 8:00 AM</li>
-                    <li><strong>Sunday:</strong> HQ Combined Service (2nd & Last) - 8:00 AM</li>
-                    <li><strong>Monday:</strong> Workers & Leaders Vigil - 11:00 PM</li>
-                    <li><strong>Tuesday:</strong> HQ Revival Hour - 8:00 AM & 5:00 PM</li>
-                    <li><strong>Tuesday:</strong> Local Branches Revival - 5:00 PM</li>
-                    <li><strong>Wednesday:</strong> New Convert Class - 5:00 PM</li>
-                    <li><strong>Thursday:</strong> Deliverance & Counseling - 8:00 AM</li>
-                    <li><strong>Friday:</strong> General Vigil - 10:00 PM</li>
-                    <li><strong>Saturday:</strong> Workers' Meeting / Bible Study - 9:00 AM</li>
-                </ul>
-            </div>
-            <div class="footer-column">
-                <h3>Connect With Us</h3>
-                <ul>
-                    <li><a href="#"><i class="fab fa-facebook"></i> Facebook</a></li>
-                    <li><a href="#"><i class="fab fa-instagram"></i> Instagram</a></li>
-                    <li><a href="#"><i class="fab fa-youtube"></i> YouTube</a></li>
-                    <li><a href="#"><i class="fas fa-globe"></i> Official Website</a></li>
-                </ul>
             </div>
         </div>
-        <div class="copyright">
-            <p>&copy; 2023 The Lord's Chosen Charismatic Revival Ministries. All Rights Reserved.</p>
+
+        <!-- Instructions -->
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> Admin Instructions</h5>
+            <ul class="mb-0">
+                <li>Only PDF files are allowed for upload</li>
+                <li>Maximum file size is 10MB</li>
+                <li>Fill in all required fields marked with *</li>
+                <li>PDF files are optional - you can upload messages without attachments</li>
+                <li>Deleted messages cannot be recovered</li>
+                <li>Use the search feature to quickly find specific messages</li>
+                <li>Click "Edit" to modify existing messages and fix mistakes</li>
+                <li>Click "Feature" to set a message as featured (appears at top of messages page)</li>
+                <li>Click "Unfeature" to remove featured status from a message</li>
+                <li>Only one message can be featured at a time</li>
+            </ul>
         </div>
     </div>
-</footer>
 
     <!-- JavaScript -->
     <script>
-        // Mobile menu toggle
-        document.querySelector('.mobile-menu')?.addEventListener('click', function() {
-            const nav = document.querySelector('nav ul');
-            if (nav.style.display === 'flex') {
-                nav.style.display = 'none';
-            } else {
-                nav.style.display = 'flex';
+        // File upload handling
+        const fileInput = document.getElementById('messageFile');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const fileNameDisplay = document.getElementById('fileName');
+        const uploadForm = document.getElementById('uploadForm');
+
+        // File selection handling
+        fileInput.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                fileNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                
+                // Validate file type
+                if (file.type !== 'application/pdf') {
+                    alert('Error: Only PDF files are allowed!');
+                    this.value = '';
+                    fileNameDisplay.textContent = '';
+                    fileNameDisplay.className = 'mt-2 text-danger fw-bold';
+                } else {
+                    fileNameDisplay.className = 'mt-2 text-success fw-bold';
+                }
+                
+                // Validate file size
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Error: File size must be less than 10MB!');
+                    this.value = '';
+                    fileNameDisplay.textContent = '';
+                }
             }
         });
 
-        // Message card animations
-        document.querySelectorAll('.message-card').forEach(card => {
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-5px)';
-            });
+        // Drag and drop functionality
+        fileUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
             
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0)';
-            });
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
         });
 
-        // Auto-hide alert after 5 seconds
-        setTimeout(() => {
-            const alert = document.querySelector('.alert');
-            if (alert) {
-                alert.style.opacity = '0';
-                alert.style.transition = 'opacity 0.5s';
-                setTimeout(() => alert.remove(), 500);
+        // Click to select file
+        fileUploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Form validation
+        uploadForm.addEventListener('submit', function(e) {
+            const title = document.getElementById('messageTitle').value.trim();
+            const code = document.getElementById('messageCode').value.trim();
+            const date = document.getElementById('messageDate').value;
+            const author = document.getElementById('messageAuthor').value.trim();
+            const description = document.getElementById('messageDescription').value.trim();
+
+            let errors = [];
+
+            if (!title) errors.push('Message title is required');
+            if (!code) errors.push('Message code is required');
+            if (!date) errors.push('Date is required');
+            if (!author) errors.push('Author is required');
+            if (!description) errors.push('Description is required');
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
+            } else {
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.disabled = true;
             }
-        }, 5000);
+        });
+
+        // Set default date to today
+        document.getElementById('messageDate').valueAsDate = new Date();
+
+        // Form reset handling
+        uploadForm.addEventListener('reset', function() {
+            fileNameDisplay.textContent = '';
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Message';
+            submitBtn.disabled = false;
+        });
+
+        // Unfeature Message Function
+        function unfeatureMessage(messageId) {
+            if (confirm('Are you sure you want to remove this message from featured?')) {
+                fetch(`/unfeature/${messageId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Error unfeaturing message');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error unfeaturing message');
+                });
+            }
+        }
+
+        // Load and display messages
+        async function loadMessages() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const searchQuery = urlParams.get('q');
+                
+                const response = await fetch('/messages-data');
+                const messages = await response.json();
+                
+                const messagesList = document.getElementById('messagesList');
+                
+                if (messages.length === 0) {
+                    messagesList.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <h5>No Messages Yet</h5>
+                            <p>Upload your first message using the form above.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Filter messages if search query exists
+                let filteredMessages = messages;
+                if (searchQuery) {
+                    filteredMessages = messages.filter(message => 
+                        message.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        message.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        message.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        message.code.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                }
+                
+                if (filteredMessages.length === 0) {
+                    messagesList.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-search fa-3x mb-3"></i>
+                            <h5>No Messages Found</h5>
+                            <p>No messages match your search criteria.</p>
+                            <a href="/admin" class="btn btn-primary mt-2">View All Messages</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                messagesList.innerHTML = filteredMessages.map(message => {
+                    // Highlight search terms
+                    const highlightText = (text, query) => {
+                        if (!query) return text;
+                        const regex = new RegExp(`(${query})`, 'gi');
+                        return text.replace(regex, '<span class="search-highlight">$1</span>');
+                    };
+                    
+                    const title = searchQuery ? highlightText(message.title, searchQuery) : message.title;
+                    const description = searchQuery ? highlightText(message.description, searchQuery) : message.description;
+                    const author = searchQuery ? highlightText(message.author, searchQuery) : message.author;
+                    const code = searchQuery ? highlightText(message.code, searchQuery) : message.code;
+                    
+                    return `
+                        <div class="message-item">
+                            <div class="message-header">
+                                <div class="message-title">${title}</div>
+                                <span class="message-code">${code}</span>
+                            </div>
+                            <div class="message-meta">
+                                <i class="far fa-calendar"></i> ${new Date(message.date).toLocaleDateString()} • 
+                                <i class="far fa-user"></i> ${author}
+                                ${message.filePath ? '• <i class="fas fa-file-pdf text-danger"></i> PDF Available' : '• <i class="fas fa-times text-muted"></i> No PDF'}
+                                ${message.featured ? '• <span class="featured-badge"><i class="fas fa-star"></i> Featured</span>' : ''}
+                            </div>
+                            <div class="message-description">${description}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    ID: ${message._id}
+                                </small>
+                                <div class="action-buttons">
+                                    <a href="/edit/${message._id}" class="btn btn-primary btn-sm me-2">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    ${message.featured ? `
+                                    <button onclick="unfeatureMessage('${message._id}')" class="btn btn-secondary btn-sm me-2" title="Remove from Featured">
+                                        <i class="fas fa-star"></i> Unfeature
+                                    </button>
+                                    ` : `
+                                    <form action="/featured/${message._id}" method="POST" style="display: inline;">
+                                        <button type="submit" class="btn btn-warning btn-sm me-2" title="Set as Featured Message">
+                                            <i class="fas fa-star"></i> Feature
+                                        </button>
+                                    </form>
+                                    `}
+                                    <form action="/delete/${message._id}" method="POST" onsubmit="return confirm('Are you sure you want to delete \"${message.title}\"? This action cannot be undone.')" style="display: inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('messagesList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading messages. Please refresh the page.
+                    </div>
+                `;
+            }
+        }
+
+        // Load messages when page loads
+        document.addEventListener('DOMContentLoaded', loadMessages);
     </script>
 </body>
-
 </html>
