@@ -901,6 +901,18 @@ footer {
     .vision-card, .mandate-card, .motto-card, .holiness-card {
         padding: 1.5rem;
     }
+        .event-card {
+        flex-direction: column;
+    }
+
+    .event-image-container {
+        width: 100%;
+        height: 220px;
+    }
+
+    .event-content {
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1078,18 +1090,3 @@ footer {
     grid-column: 1 / -1;
 }
 
-/* Responsive design for events */
-@media (max-width: 768px) {
-    .event-card {
-        flex-direction: column;
-    }
-
-    .event-image-container {
-        width: 100%;
-        height: 220px;
-    }
-
-    .event-content {
-        width: 100%;
-    }
-}
