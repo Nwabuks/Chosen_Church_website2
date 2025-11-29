@@ -85,6 +85,46 @@ const messageSchema = new mongoose.Schema({
 });
 
 const Message = mongoose.model('Message', messageSchema);
+// ===== EVENT SCHEMA =====
+const eventSchema = new mongoose.Schema({
+    title: { type: String, required: true },
+    date: { type: Date, required: true },
+    venue: { type: String, required: true },
+    description: { type: String, required: true },
+    imagePath: { type: String, default: '' },
+    imageFile: {
+        data: Buffer,
+        contentType: String,
+        filename: String,
+        size: Number
+    },
+    link: { type: String, default: '' },
+    featured: { type: Boolean, default: false },
+    active: { type: Boolean, default: true }
+}, {
+    timestamps: true
+});
+
+const Event = mongoose.model('Event', eventSchema);
+
+// ===== EVENT FILE UPLOAD CONFIG =====
+const eventStorage = multer.memoryStorage();
+const eventUpload = multer({
+    storage: eventStorage,
+    fileFilter: function (req, file, cb) {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'), false);
+        }
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB
+    }
+});
+
+// Temporary storage for events (fallback)
+let tempEvents = [];
 
 // ===== FILE UPLOAD CONFIGURATION =====
 const storage = multer.memoryStorage(); // Store files in memory as Buffer
@@ -247,9 +287,10 @@ app.get('/preview/:id', async (req, res) => {
 });
 
 // Homepage - Show only 3 recent messages
+// Homepage - Show 3 recent messages and upcoming events
 app.get('/', async (req, res) => {
     try {
-        let messages;
+        let messages, featuredEvents;
         let usingMongoDB = false;
         let totalMessages = 0;
         
@@ -258,8 +299,15 @@ app.get('/', async (req, res) => {
                 // Get only 3 most recent messages for homepage
                 messages = await Message.find().sort({ date: -1 }).limit(3);
                 totalMessages = await Message.countDocuments();
+                
+                // Get upcoming events (not past events)
+                featuredEvents = await Event.find({ 
+                    date: { $gte: new Date() },
+                    active: true 
+                }).sort({ date: 1 }).limit(3); // Get 3 upcoming events
+                
                 usingMongoDB = true;
-                console.log('📥 Loaded', messages.length, 'recent messages for homepage');
+                console.log('📥 Loaded', messages.length, 'recent messages and', featuredEvents.length, 'upcoming events for homepage');
             } else {
                 throw new Error('MongoDB not connected');
             }
@@ -267,19 +315,26 @@ app.get('/', async (req, res) => {
             // Get first 3 messages from temporary storage
             messages = tempMessages.slice(0, 3);
             totalMessages = tempMessages.length;
-            console.log('📥 Loaded', messages.length, 'recent messages from temporary storage');
+            
+            // Get upcoming events from temporary storage
+            const now = new Date();
+            featuredEvents = tempEvents.filter(event => new Date(event.date) >= now).slice(0, 3);
+            
+            console.log('📥 Loaded', messages.length, 'recent messages and', featuredEvents.length, 'upcoming events from temporary storage');
         }
         
         res.render('index', { 
             messages: messages, 
+            featuredEvents: featuredEvents,
             isAdmin: false,
             usingMongoDB: usingMongoDB,
             totalMessages: totalMessages
         });
     } catch (err) {
-        console.log('Error loading messages:', err);
+        console.log('Error loading homepage data:', err);
         res.render('index', { 
             messages: tempMessages.slice(0, 3), 
+            featuredEvents: [],
             isAdmin: false,
             usingMongoDB: false,
             totalMessages: tempMessages.length
@@ -438,6 +493,144 @@ app.get('/admin-search', requireAuth, async (req, res) => {
     } catch (err) {
         console.log('Admin search error:', err);
         res.redirect('/admin');
+    }
+});
+// Events Admin Page
+app.get('/admin-events', requireAuth, (req, res) => {
+    const usingMongoDB = mongoose.connection.readyState === 1;
+    const success = req.query.success;
+    res.render('admin-events', { 
+        usingMongoDB: usingMongoDB,
+        isAuthenticated: true,
+        success: success
+    });
+});
+
+// Upload Event
+app.post('/upload-event', requireAuth, eventUpload.single('eventImage'), async (req, res) => {
+    try {
+        const { title, date, venue, description, link, featured } = req.body;
+        
+        if (!title || !date || !venue || !description || !req.file) {
+            return res.status(400).send('Please fill in all required fields');
+        }
+
+        const newEvent = {
+            title: title,
+            date: new Date(date),
+            venue: venue,
+            description: description,
+            link: link || '',
+            featured: featured === 'on',
+            active: true
+        };
+
+        // Store image in MongoDB
+        if (req.file) {
+            newEvent.imageFile = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                filename: req.file.originalname,
+                size: req.file.size
+            };
+            newEvent.imagePath = `/event-image/${Date.now()}-${req.file.originalname}`;
+        }
+
+        console.log('📅 Admin uploading event:', newEvent.title);
+
+        try {
+            if (mongoose.connection.readyState === 1) {
+                const savedEvent = new Event(newEvent);
+                await savedEvent.save();
+                console.log('✅ Event saved to MongoDB Atlas');
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            newEvent._id = Date.now().toString();
+            tempEvents.unshift(newEvent);
+            console.log('✅ Event saved to temporary storage');
+        }
+
+        res.redirect('/admin-events?success=Event uploaded successfully');
+    } catch (err) {
+        console.log('Event upload error:', err);
+        res.status(500).send('Error uploading event: ' + err.message);
+    }
+});
+
+// Get events data (JSON API)
+app.get('/events-data', requireAuth, async (req, res) => {
+    try {
+        let events;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                events = await Event.find().sort({ date: 1 }); // Sort by date (soonest first)
+            } else {
+                events = tempEvents;
+            }
+        } catch (dbError) {
+            events = tempEvents;
+        }
+
+        res.json(events);
+    } catch (err) {
+        console.log('Error loading events data:', err);
+        res.status(500).json({ error: 'Failed to load events' });
+    }
+});
+
+// Serve event images
+app.get('/event-image/:id', async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        let event;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                event = await Event.findById(eventId);
+            } else {
+                event = tempEvents.find(evt => evt._id === eventId);
+            }
+        } catch (dbError) {
+            event = tempEvents.find(evt => evt._id === eventId);
+        }
+
+        if (!event || !event.imageFile) {
+            return res.status(404).send('Event image not found');
+        }
+
+        res.setHeader('Content-Type', event.imageFile.contentType);
+        res.send(event.imageFile.data);
+    } catch (err) {
+        console.log('Event image error:', err);
+        res.status(500).send('Error retrieving event image');
+    }
+});
+
+// Delete Event
+app.post('/delete-event/:id', requireAuth, async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        console.log('🗑️ Admin deleting event:', eventId);
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                await Event.findByIdAndDelete(eventId);
+                console.log('✅ Event deleted from MongoDB Atlas');
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            tempEvents = tempEvents.filter(evt => evt._id !== eventId);
+            console.log('✅ Event deleted from temporary storage');
+        }
+
+        res.redirect('/admin-events?success=Event deleted successfully');
+    } catch (err) {
+        console.log('Event delete error:', err);
+        res.status(500).send('Error deleting event');
     }
 });
 
