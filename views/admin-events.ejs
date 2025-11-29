@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Events - The God of Chosen Answers Prayers</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .admin-container {
+            min-height: 80vh;
+            padding: 2rem 0;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, var(--primary), #600000);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .upload-section, .events-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .image-preview {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+        .event-card {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .event-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .event-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+        .event-details {
+            padding: 1rem;
+        }
+        .file-upload {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: #f0f4f8;
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-calendar-alt"></i> Manage Events</h1>
+                    <p class="mb-0">Upload and manage church events and programs</p>
+                </div>
+                <div>
+                    <a href="/admin" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Messages
+                    </a>
+                    <a href="/admin-logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Content -->
+    <div class="container admin-container">
+        <!-- Success Message -->
+        <% if (success) { %>
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle"></i> <%= success %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- Admin Navigation -->
+        <div class="admin-actions mb-4">
+            <a href="/admin" class="btn btn-secondary">
+                <i class="fas fa-envelope"></i> Manage Messages
+            </a>
+            <a href="/admin-events" class="btn btn-primary">
+                <i class="fas fa-calendar-alt"></i> Manage Events
+            </a>
+            <a href="/" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> View Website
+            </a>
+        </div>
+
+        <!-- Upload Event Section -->
+        <div class="upload-section">
+            <h3 class="mb-4"><i class="fas fa-plus-circle"></i> Add New Event</h3>
+            
+            <form id="eventForm" action="/upload-event" method="POST" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="eventTitle">Event Title *</label>
+                            <input type="text" class="form-control" id="eventTitle" name="title" 
+                                   placeholder="Enter event title" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="eventDate">Event Date *</label>
+                            <input type="datetime-local" class="form-control" id="eventDate" name="date" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="eventVenue">Venue *</label>
+                    <input type="text" class="form-control" id="eventVenue" name="venue" 
+                           placeholder="Enter event venue" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="eventDescription">Description *</label>
+                    <textarea class="form-control" id="eventDescription" name="description" 
+                              rows="3" placeholder="Describe the event..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="eventLink">Event Link (Optional)</label>
+                    <input type="url" class="form-control" id="eventLink" name="link" 
+                           placeholder="https://example.com/event-registration">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Event Image *</label>
+                    <div class="file-upload" id="imageUploadArea">
+                        <i class="fas fa-image fa-3x text-primary mb-3"></i>
+                        <h5>Drop event image here or click to browse</h5>
+                        <p class="text-muted">Supported formats: JPG, PNG, GIF (Max: 5MB)</p>
+                        <input type="file" class="d-none" id="eventImage" name="eventImage" 
+                               accept=".jpg,.jpeg,.png,.gif" required>
+                        <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('eventImage').click()">
+                            <i class="fas fa-folder-open"></i> Choose Image
+                        </button>
+                        <div id="imageName" class="mt-2 text-success fw-bold"></div>
+                    </div>
+                    <img id="imagePreview" class="image-preview" alt="Image preview">
+                </div>
+
+                <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input" id="featuredEvent" name="featured">
+                    <label class="form-check-label" for="featuredEvent">
+                        Feature this event on homepage
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-upload"></i> Upload Event
+                    </button>
+                    <button type="reset" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-redo"></i> Reset Form
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Events Management Section -->
+        <div class="events-section">
+            <h3 class="mb-4"><i class="fas fa-list"></i> Manage Events</h3>
+            
+            <div id="eventsList">
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                    <p>Loading events...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> Event Management Instructions</h5>
+            <ul class="mb-0">
+                <li>Upload high-quality images for better display (recommended: 800x600px)</li>
+                <li>Featured events appear prominently on the homepage</li>
+                <li>Include clear event details for better engagement</li>
+                <li>Add registration links if available</li>
+                <li>Events are automatically sorted by date (soonest first)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Image upload handling
+        const imageInput = document.getElementById('eventImage');
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        const imageNameDisplay = document.getElementById('imageName');
+        const imagePreview = document.getElementById('imagePreview');
+        const eventForm = document.getElementById('eventForm');
+
+        // Image selection handling
+        imageInput.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                imageNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Error: Only image files are allowed!');
+                    this.value = '';
+                    imageNameDisplay.textContent = '';
+                    return;
+                }
+                
+                // Validate file size
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Error: File size must be less than 5MB!');
+                    this.value = '';
+                    imageNameDisplay.textContent = '';
+                    return;
+                }
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag and drop functionality
+        imageUploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        imageUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        imageUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                imageInput.files = files;
+                imageInput.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Click to select file
+        imageUploadArea.addEventListener('click', function() {
+            imageInput.click();
+        });
+
+        // Form validation
+        eventForm.addEventListener('submit', function(e) {
+            const title = document.getElementById('eventTitle').value.trim();
+            const date = document.getElementById('eventDate').value;
+            const venue = document.getElementById('eventVenue').value.trim();
+            const description = document.getElementById('eventDescription').value.trim();
+
+            let errors = [];
+
+            if (!title) errors.push('Event title is required');
+            if (!date) errors.push('Event date is required');
+            if (!venue) errors.push('Venue is required');
+            if (!description) errors.push('Description is required');
+            if (!imageInput.files.length) errors.push('Event image is required');
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
+            } else {
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.disabled = true;
+            }
+        });
+
+        // Set default date to current datetime
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('eventDate').value = now.toISOString().slice(0, 16);
+
+        // Load and display events
+        async function loadEvents() {
+            try {
+                const response = await fetch('/events-data');
+                const events = await response.json();
+                
+                const eventsList = document.getElementById('eventsList');
+                
+                if (events.length === 0) {
+                    eventsList.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                            <h5>No Events Yet</h5>
+                            <p>Add your first event using the form above.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                eventsList.innerHTML = events.map(event => {
+                    const eventDate = new Date(event.date);
+                    const now = new Date();
+                    const isPast = eventDate < now;
+                    
+                    return `
+                        <div class="event-card ${isPast ? 'opacity-50' : ''}">
+                            <div class="row g-0">
+                                <div class="col-md-3">
+                                    <img src="/event-image/${event._id}" alt="${event.title}" class="event-image">
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="event-details">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h5 class="mb-1">${event.title}</h5>
+                                                <p class="text-muted mb-1">
+                                                    <i class="far fa-calendar"></i> ${eventDate.toLocaleDateString()} • 
+                                                    <i class="far fa-clock"></i> ${eventDate.toLocaleTimeString()}
+                                                </p>
+                                                <p class="mb-1"><strong>Venue:</strong> ${event.venue}</p>
+                                            </div>
+                                            <div class="d-flex gap-1">
+                                                ${event.featured ? '<span class="badge bg-warning">Featured</span>' : ''}
+                                                ${isPast ? '<span class="badge bg-secondary">Past Event</span>' : '<span class="badge bg-success">Upcoming</span>'}
+                                            </div>
+                                        </div>
+                                        <p class="mb-2">${event.description}</p>
+                                        ${event.link ? `<p class="mb-2"><strong>Link:</strong> <a href="${event.link}" target="_blank">${event.link}</a></p>` : ''}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                Created: ${new Date(event.createdAt).toLocaleDateString()}
+                                            </small>
+                                            <div class="action-buttons">
+                                                <form action="/delete-event/${event._id}" method="POST" onsubmit="return confirm('Are you sure you want to delete \"${event.title}\"?')" style="display: inline;">
+                                                    <button type="submit" class="btn btn-danger btn-sm">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading events:', error);
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading events. Please refresh the page.
+                    </div>
+                `;
+            }
+        }
+
+        // Load events when page loads
+        document.addEventListener('DOMContentLoaded', loadEvents);
+    </script>
+</body>
+</html>

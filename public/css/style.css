@@ -974,3 +974,122 @@ footer {
     font-size: 0.9rem;
     padding: 0.3rem 0;
 }
+.events-section {
+    margin: 4rem 0;
+}
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(800px, 1fr)); /* Increased min width */
+    gap: 2rem;
+    margin-top: 2rem;
+}
+.event-card {
+    display: flex;
+    gap: 0;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+.event-image-container {
+    width: 40%;
+    height: max-content;
+    overflow: hidden;
+}
+
+.event-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.event-content {
+    width: 60%;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start; /* change to center if you want perfect center */
+    gap: 10px;
+}
+
+.event-date {
+    background: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem; /* Slightly bigger */
+    border-radius: 15px;
+    font-size: 0.9rem; /* Slightly bigger text */
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+.event-featured {
+    background: var(--secondary);
+    color: white;
+    padding: 0.4rem 1rem; /* Slightly bigger */
+    border-radius: 15px;
+    font-size: 0.8rem; /* Slightly bigger text */
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+.event-venue {
+    color: var(--gray);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem; /* Slightly bigger text */
+}
+.event-title {
+    font-size: 1.4rem; /* Bigger title */
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+.event-description {
+    color: var(--gray);
+    font-size: 1rem; /* Bigger description text */
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 4; /* Show more lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+/* .event-actions {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: auto;
+} */
+/* .event-actions .btn {
+    padding: 0.8rem 1.5rem; /* Bigger buttons */
+    font-size: 1rem; /* Bigger button text */
+} */
+.no-events {
+    text-align: center;
+    padding: 3rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+    grid-column: 1 / -1;
+}
+
+/* Responsive design for events */
+@media (max-width: 768px) {
+    .event-card {
+        flex-direction: column;
+    }
+
+    .event-image-container {
+        width: 100%;
+        height: 220px;
+    }
+
+    .event-content {
+        width: 100%;
+    }
+}
