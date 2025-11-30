@@ -64,6 +64,16 @@
             border-color: var(--primary);
             background: #f0f4f8;
         }
+        .event-status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-upcoming { background: var(--success); color: white; }
+        .status-ongoing { background: var(--warning); color: #212529; }
+        .status-completed { background: var(--gray); color: white; }
     </style>
 </head>
 <body class="admin-page">
@@ -125,16 +135,28 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="form-label" for="eventDate">Event Date *</label>
+                            <label class="form-label" for="eventDate">Start Date & Time *</label>
                             <input type="datetime-local" class="form-control" id="eventDate" name="date" required>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="eventVenue">Venue *</label>
-                    <input type="text" class="form-control" id="eventVenue" name="venue" 
-                           placeholder="Enter event venue" required>
+                <!-- NEW: End Date Field -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="eventEndDate">End Date & Time (Optional)</label>
+                            <input type="datetime-local" class="form-control" id="eventEndDate" name="endDate">
+                            <small class="text-muted">For multi-day events. Leave empty for single-day events.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="eventVenue">Venue *</label>
+                            <input type="text" class="form-control" id="eventVenue" name="venue" 
+                                   placeholder="Enter event venue" required>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -203,188 +225,294 @@
                 <li>Featured events appear prominently on the homepage</li>
                 <li>Include clear event details for better engagement</li>
                 <li>Add registration links if available</li>
+                <li>Use end date for multi-day events to show "Ongoing" status</li>
                 <li>Events are automatically sorted by date (soonest first)</li>
+                <li>Past events remain visible unless deleted</li>
             </ul>
         </div>
     </div>
 
     <script>
-        // Image upload handling
-        const imageInput = document.getElementById('eventImage');
-        const imageUploadArea = document.getElementById('imageUploadArea');
-        const imageNameDisplay = document.getElementById('imageName');
-        const imagePreview = document.getElementById('imagePreview');
-        const eventForm = document.getElementById('eventForm');
+    // Image upload handling
+    const imageInput = document.getElementById('eventImage');
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    const imageNameDisplay = document.getElementById('imageName');
+    const imagePreview = document.getElementById('imagePreview');
+    const eventForm = document.getElementById('eventForm');
 
-        // Image selection handling
-        imageInput.addEventListener('change', function(e) {
-            if (this.files.length > 0) {
-                const file = this.files[0];
-                imageNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                
-                // Validate file type
-                if (!file.type.startsWith('image/')) {
-                    alert('Error: Only image files are allowed!');
-                    this.value = '';
-                    imageNameDisplay.textContent = '';
-                    return;
-                }
-                
-                // Validate file size
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Error: File size must be less than 5MB!');
-                    this.value = '';
-                    imageNameDisplay.textContent = '';
-                    return;
-                }
-                
-                // Show preview
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.src = e.target.result;
-                    imagePreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Drag and drop functionality
-        imageUploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            this.classList.add('dragover');
-        });
-
-        imageUploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            this.classList.remove('dragover');
-        });
-
-        imageUploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.classList.remove('dragover');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                imageInput.files = files;
-                imageInput.dispatchEvent(new Event('change'));
-            }
-        });
-
-        // Click to select file
-        imageUploadArea.addEventListener('click', function() {
-            imageInput.click();
-        });
-
-        // Form validation
-        eventForm.addEventListener('submit', function(e) {
-            const title = document.getElementById('eventTitle').value.trim();
-            const date = document.getElementById('eventDate').value;
-            const venue = document.getElementById('eventVenue').value.trim();
-            const description = document.getElementById('eventDescription').value.trim();
-
-            let errors = [];
-
-            if (!title) errors.push('Event title is required');
-            if (!date) errors.push('Event date is required');
-            if (!venue) errors.push('Venue is required');
-            if (!description) errors.push('Description is required');
-            if (!imageInput.files.length) errors.push('Event image is required');
-
-            if (errors.length > 0) {
-                e.preventDefault();
-                alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
-            } else {
-                // Show loading state
-                const submitBtn = this.querySelector('button[type="submit"]');
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-                submitBtn.disabled = true;
-            }
-        });
-
-        // Set default date to current datetime
+    // Set default dates and handle end date logic
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default start date to current datetime
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         document.getElementById('eventDate').value = now.toISOString().slice(0, 16);
+        
+        // Set default end date to start date + 2 hours (optional)
+        const endDate = new Date(now);
+        endDate.setHours(endDate.getHours() + 2);
+        document.getElementById('eventEndDate').value = endDate.toISOString().slice(0, 16);
+        
+        // Validate that end date is after start date
+        document.getElementById('eventDate').addEventListener('change', function() {
+            const startDate = new Date(this.value);
+            const endDateInput = document.getElementById('eventEndDate');
+            const endDate = new Date(endDateInput.value);
+            
+            if (endDate <= startDate) {
+                endDateInput.value = '';
+                alert('End date must be after start date');
+            }
+        });
+    });
 
-        // Load and display events
-        async function loadEvents() {
-            try {
-                const response = await fetch('/events-data');
-                const events = await response.json();
+    // Image selection handling
+    imageInput.addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            imageNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Error: Only image files are allowed!');
+                this.value = '';
+                imageNameDisplay.textContent = '';
+                return;
+            }
+            
+            // Validate file size
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Error: File size must be less than 5MB!');
+                this.value = '';
+                imageNameDisplay.textContent = '';
+                return;
+            }
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Drag and drop functionality
+    imageUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+
+    imageUploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+    });
+
+    imageUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            imageInput.files = files;
+            imageInput.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Click to select file
+    imageUploadArea.addEventListener('click', function() {
+        imageInput.click();
+    });
+
+    // Form validation
+    eventForm.addEventListener('submit', function(e) {
+        const title = document.getElementById('eventTitle').value.trim();
+        const date = document.getElementById('eventDate').value;
+        const venue = document.getElementById('eventVenue').value.trim();
+        const description = document.getElementById('eventDescription').value.trim();
+        const startDate = new Date(date);
+        const endDateInput = document.getElementById('eventEndDate').value;
+        
+        let errors = [];
+
+        if (!title) errors.push('Event title is required');
+        if (!date) errors.push('Event date is required');
+        if (!venue) errors.push('Venue is required');
+        if (!description) errors.push('Description is required');
+        if (!imageInput.files.length) errors.push('Event image is required');
+        
+        // Validate end date
+        if (endDateInput) {
+            const endDate = new Date(endDateInput);
+            if (endDate <= startDate) {
+                errors.push('End date must be after start date');
+            }
+        }
+
+        if (errors.length > 0) {
+            e.preventDefault();
+            alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
+        } else {
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            submitBtn.disabled = true;
+        }
+    });
+
+    // Load and display events
+    async function loadEvents() {
+        try {
+            const response = await fetch('/events-data');
+            const events = await response.json();
+            
+            const eventsList = document.getElementById('eventsList');
+            
+            if (events.length === 0) {
+                eventsList.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <h5>No Events Yet</h5>
+                        <p>Add your first event using the form above.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            eventsList.innerHTML = events.map(event => {
+                const eventDate = new Date(event.date);
+                const endDate = event.endDate ? new Date(event.endDate) : null;
+                const now = new Date();
                 
-                const eventsList = document.getElementById('eventsList');
+                // Calculate status
+                let status = 'upcoming';
+                let statusClass = 'status-upcoming';
                 
-                if (events.length === 0) {
-                    eventsList.innerHTML = `
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
-                            <h5>No Events Yet</h5>
-                            <p>Add your first event using the form above.</p>
-                        </div>
-                    `;
-                    return;
+                if (endDate) {
+                    // Multi-day event
+                    if (now < eventDate) {
+                        status = 'upcoming';
+                        statusClass = 'status-upcoming';
+                    } else if (now >= eventDate && now <= endDate) {
+                        status = 'ongoing';
+                        statusClass = 'status-ongoing';
+                    } else {
+                        status = 'completed';
+                        statusClass = 'status-completed';
+                    }
+                } else {
+                    // Single-day event
+                    const eventDay = new Date(eventDate);
+                    eventDay.setHours(23, 59, 59, 999);
+                    
+                    if (now < eventDate) {
+                        status = 'upcoming';
+                        statusClass = 'status-upcoming';
+                    } else if (now <= eventDay) {
+                        status = 'ongoing';
+                        statusClass = 'status-ongoing';
+                    } else {
+                        status = 'completed';
+                        statusClass = 'status-completed';
+                    }
                 }
                 
-                eventsList.innerHTML = events.map(event => {
-                    const eventDate = new Date(event.date);
-                    const now = new Date();
-                    const isPast = eventDate < now;
-                    
-                    return `
-                        <div class="event-card ${isPast ? 'opacity-50' : ''}">
-                            <div class="row g-0">
-                                <div class="col-md-3">
-                                    <img src="/event-image/${event._id}" alt="${event.title}" class="event-image">
-                                </div>
-                                <div class="col-md-9">
-                                    <div class="event-details">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                <h5 class="mb-1">${event.title}</h5>
-                                                <p class="text-muted mb-1">
-                                                    <i class="far fa-calendar"></i> ${eventDate.toLocaleDateString()} • 
-                                                    <i class="far fa-clock"></i> ${eventDate.toLocaleTimeString()}
-                                                </p>
-                                                <p class="mb-1"><strong>Venue:</strong> ${event.venue}</p>
-                                            </div>
-                                            <div class="d-flex gap-1">
-                                                ${event.featured ? '<span class="badge bg-warning">Featured</span>' : ''}
-                                                ${isPast ? '<span class="badge bg-secondary">Past Event</span>' : '<span class="badge bg-success">Upcoming</span>'}
-                                            </div>
+                // Format date display
+                let dateDisplay = eventDate.toLocaleDateString();
+                if (endDate) {
+                    dateDisplay += ' - ' + endDate.toLocaleDateString();
+                }
+                
+                return `
+                    <div class="event-card ${status === 'completed' ? 'opacity-75' : ''}">
+                        <div class="row g-0">
+                            <div class="col-md-3">
+                                <img src="/event-image/${event._id}" alt="${event.title}" class="event-image">
+                            </div>
+                            <div class="col-md-9">
+                                <div class="event-details">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h5 class="mb-1">${event.title}</h5>
+                                            <p class="text-muted mb-1">
+                                                <i class="far fa-calendar"></i> ${dateDisplay} • 
+                                                <i class="far fa-clock"></i> ${eventDate.toLocaleTimeString()}
+                                                ${endDate ? '• <i class="fas fa-flag-checkered"></i> ' + endDate.toLocaleTimeString() : ''}
+                                            </p>
+                                            <p class="mb-1"><strong>Venue:</strong> ${event.venue}</p>
                                         </div>
-                                        <p class="mb-2">${event.description}</p>
-                                        ${event.link ? `<p class="mb-2"><strong>Link:</strong> <a href="${event.link}" target="_blank">${event.link}</a></p>` : ''}
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">
-                                                Created: ${new Date(event.createdAt).toLocaleDateString()}
-                                            </small>
-                                            <div class="action-buttons">
-                                                <form action="/delete-event/${event._id}" method="POST" onsubmit="return confirm('Are you sure you want to delete \"${event.title}\"?')" style="display: inline;">
-                                                    <button type="submit" class="btn btn-danger btn-sm">
-                                                        <i class="fas fa-trash"></i> Delete
-                                                    </button>
-                                                </form>
-                                            </div>
+                                        <div class="d-flex gap-1">
+                                            ${event.featured ? '<span class="badge bg-warning">Featured</span>' : ''}
+                                            <span class="event-status-badge ${statusClass}">
+                                                ${status === 'ongoing' ? '🔥 ' : ''}${status.charAt(0).toUpperCase() + status.slice(1)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p class="mb-2">${event.description}</p>
+                                    ${event.link ? `<p class="mb-2"><strong>Link:</strong> <a href="${event.link}" target="_blank">${event.link}</a></p>` : ''}
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            Created: ${new Date(event.createdAt).toLocaleDateString()}
+                                        </small>
+                                        <div class="action-buttons">
+                                            <!-- EDIT BUTTON -->
+                                            <a href="/edit-event/${event._id}" class="btn btn-primary btn-sm me-2">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            ${event.featured ? `
+                                                <button onclick="unfeatureEvent('${event._id}')" class="btn btn-warning btn-sm me-2" title="Remove from Featured">
+                                                    <i class="fas fa-star"></i> Unfeature
+                                                </button>
+                                            ` : ''}
+                                            <form action="/delete-event/${event._id}" method="POST" onsubmit="return confirm('Are you sure you want to delete \"${event.title}\"?')" style="display: inline;">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    `;
-                }).join('');
-                
-            } catch (error) {
-                console.error('Error loading events:', error);
-                document.getElementById('eventsList').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading events. Please refresh the page.
                     </div>
                 `;
-            }
+            }).join('');
+            
+        } catch (error) {
+            console.error('Error loading events:', error);
+            document.getElementById('eventsList').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Error loading events. Please refresh the page.
+                </div>
+            `;
         }
+    }
 
-        // Load events when page loads
-        document.addEventListener('DOMContentLoaded', loadEvents);
-    </script>
+    // Unfeature event function
+    function unfeatureEvent(eventId) {
+        if (confirm('Are you sure you want to remove this event from featured?')) {
+            fetch(`/unfeature-event/${eventId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error unfeaturing event');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error unfeaturing event');
+            });
+        }
+    }
+
+    // Load events when page loads
+    document.addEventListener('DOMContentLoaded', loadEvents);
+</script>
 </body>
 </html>

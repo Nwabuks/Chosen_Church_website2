@@ -85,10 +85,12 @@ const messageSchema = new mongoose.Schema({
 });
 
 const Message = mongoose.model('Message', messageSchema);
+
 // ===== EVENT SCHEMA =====
 const eventSchema = new mongoose.Schema({
     title: { type: String, required: true },
     date: { type: Date, required: true },
+    endDate: { type: Date }, // NEW: For multi-day events
     venue: { type: String, required: true },
     description: { type: String, required: true },
     imagePath: { type: String, default: '' },
@@ -100,7 +102,8 @@ const eventSchema = new mongoose.Schema({
     },
     link: { type: String, default: '' },
     featured: { type: Boolean, default: false },
-    active: { type: Boolean, default: true }
+    active: { type: Boolean, default: true },
+    category: { type: String, default: 'general' }
 }, {
     timestamps: true
 });
@@ -286,11 +289,13 @@ app.get('/preview/:id', async (req, res) => {
     }
 });
 
-// Homepage - Show only 3 recent messages
+
 // Homepage - Show 3 recent messages and upcoming events
+// Homepage - Show events with status
+// Homepage - Show events with proper status
 app.get('/', async (req, res) => {
     try {
-        let messages, featuredEvents;
+        let messages, events;
         let usingMongoDB = false;
         let totalMessages = 0;
         
@@ -300,14 +305,21 @@ app.get('/', async (req, res) => {
                 messages = await Message.find().sort({ date: -1 }).limit(3);
                 totalMessages = await Message.countDocuments();
                 
-                // Get upcoming events (not past events)
-                featuredEvents = await Event.find({ 
-                    date: { $gte: new Date() },
-                    active: true 
-                }).sort({ date: 1 }).limit(3); // Get 3 upcoming events
+                // Get all active events
+                events = await Event.find({ active: true })
+                                  .sort({ date: 1 })
+                                  .limit(6);
+                
+                // Add status to each event
+                events = events.map(event => {
+                    return {
+                        ...event._doc,
+                        status: calculateEventStatus(event)
+                    };
+                });
                 
                 usingMongoDB = true;
-                console.log('📥 Loaded', messages.length, 'recent messages and', featuredEvents.length, 'upcoming events for homepage');
+                console.log('📥 Loaded', messages.length, 'recent messages and', events.length, 'events for homepage');
             } else {
                 throw new Error('MongoDB not connected');
             }
@@ -316,16 +328,21 @@ app.get('/', async (req, res) => {
             messages = tempMessages.slice(0, 3);
             totalMessages = tempMessages.length;
             
-            // Get upcoming events from temporary storage
+            // Get events from temporary storage with status
             const now = new Date();
-            featuredEvents = tempEvents.filter(event => new Date(event.date) >= now).slice(0, 3);
+            events = tempEvents.map(event => {
+                return {
+                    ...event,
+                    status: calculateEventStatus(event)
+                };
+            }).slice(0, 6);
             
-            console.log('📥 Loaded', messages.length, 'recent messages and', featuredEvents.length, 'upcoming events from temporary storage');
+            console.log('📥 Loaded', messages.length, 'recent messages and', events.length, 'events from temporary storage');
         }
         
         res.render('index', { 
             messages: messages, 
-            featuredEvents: featuredEvents,
+            featuredEvents: events,
             isAdmin: false,
             usingMongoDB: usingMongoDB,
             totalMessages: totalMessages
@@ -509,7 +526,7 @@ app.get('/admin-events', requireAuth, (req, res) => {
 // Upload Event
 app.post('/upload-event', requireAuth, eventUpload.single('eventImage'), async (req, res) => {
     try {
-        const { title, date, venue, description, link, featured } = req.body;
+        const { title, date, endDate, venue, description, link, featured } = req.body;
         
         if (!title || !date || !venue || !description || !req.file) {
             return res.status(400).send('Please fill in all required fields');
@@ -524,6 +541,11 @@ app.post('/upload-event', requireAuth, eventUpload.single('eventImage'), async (
             featured: featured === 'on',
             active: true
         };
+
+        // Add end date if provided
+        if (endDate) {
+            newEvent.endDate = new Date(endDate);
+        }
 
         // Store image in MongoDB
         if (req.file) {
@@ -631,6 +653,195 @@ app.post('/delete-event/:id', requireAuth, async (req, res) => {
     } catch (err) {
         console.log('Event delete error:', err);
         res.status(500).send('Error deleting event');
+    }
+});
+// ===== EVENT STATUS HELPER =====
+function calculateEventStatus(event) {
+    const now = new Date();
+    const startDate = new Date(event.date);
+    const endDate = event.endDate ? new Date(event.endDate) : null;
+    
+    if (endDate) {
+        // Multi-day event
+        if (now < startDate) {
+            return 'upcoming';
+        } else if (now >= startDate && now <= endDate) {
+            return 'ongoing';
+        } else {
+            return 'completed';
+        }
+    } else {
+        // Single-day event
+        const eventDay = new Date(startDate);
+        eventDay.setHours(23, 59, 59, 999); // End of the event day
+        
+        if (now < startDate) {
+            return 'upcoming';
+        } else if (now <= eventDay) {
+            return 'ongoing';
+        } else {
+            return 'completed';
+        }
+    }
+}
+// ===== EDIT EVENT ROUTES =====
+
+// Edit Event Page (Protected - Admin only)
+app.get('/edit-event/:id', requireAuth, async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        let event;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                event = await Event.findById(eventId);
+            } else {
+                event = tempEvents.find(evt => evt._id === eventId);
+            }
+        } catch (dbError) {
+            event = tempEvents.find(evt => evt._id === eventId);
+        }
+
+        if (!event) {
+            return res.status(404).send('Event not found');
+        }
+
+        res.render('edit-event', { 
+            event: event,
+            isAuthenticated: true,
+            usingMongoDB: mongoose.connection.readyState === 1
+        });
+    } catch (err) {
+        console.log('Edit event page error:', err);
+        res.status(500).send('Error loading edit event page');
+    }
+});
+
+// Update Event (Protected - Admin only)
+app.post('/update-event/:id', requireAuth, eventUpload.single('eventImage'), async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        const { title, date, endDate, venue, description, link, featured, removeFeatured } = req.body;
+        
+        if (!title || !date || !venue || !description) {
+            return res.status(400).send('Please fill in all required fields');
+        }
+
+        const updatedEvent = {
+            title: title,
+            date: new Date(date),
+            venue: venue,
+            description: description,
+            link: link || '',
+            featured: featured === 'on'
+        };
+
+        // Handle end date
+        if (endDate) {
+            updatedEvent.endDate = new Date(endDate);
+        } else {
+            updatedEvent.endDate = null;
+        }
+
+        // Handle unfeature request
+        if (removeFeatured === 'on') {
+            updatedEvent.featured = false;
+        }
+
+        // Handle image updates
+        if (req.file) {
+            // Store new image in MongoDB
+            updatedEvent.imageFile = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                filename: req.file.originalname,
+                size: req.file.size
+            };
+            updatedEvent.imagePath = `/event-image/${eventId}`;
+        } else {
+            // Keep existing image
+            let existingEvent;
+            try {
+                if (mongoose.connection.readyState === 1) {
+                    existingEvent = await Event.findById(eventId);
+                } else {
+                    existingEvent = tempEvents.find(evt => evt._id === eventId);
+                }
+                updatedEvent.imagePath = existingEvent?.imagePath || '';
+                updatedEvent.imageFile = existingEvent?.imageFile || null;
+            } catch (dbError) {
+                existingEvent = tempEvents.find(evt => evt._id === eventId);
+                updatedEvent.imagePath = existingEvent?.imagePath || '';
+                updatedEvent.imageFile = existingEvent?.imageFile || null;
+            }
+        }
+
+        console.log('📝 Admin updating event:', eventId, updatedEvent.title);
+
+        try {
+            if (mongoose.connection.readyState === 1) {
+                const result = await Event.findByIdAndUpdate(eventId, updatedEvent, { new: true });
+                if (result) {
+                    console.log('✅ Event updated in MongoDB Atlas');
+                } else {
+                    console.log('❌ Event not found in MongoDB');
+                    return res.status(404).send('Event not found');
+                }
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            const eventIndex = tempEvents.findIndex(evt => evt._id === eventId);
+            if (eventIndex !== -1) {
+                tempEvents[eventIndex] = { ...tempEvents[eventIndex], ...updatedEvent };
+                console.log('✅ Event updated in temporary storage');
+            } else {
+                console.log('❌ Event not found in temporary storage');
+                return res.status(404).send('Event not found');
+            }
+        }
+
+        res.redirect('/admin-events?success=Event updated successfully');
+    } catch (err) {
+        console.log('Update event error:', err);
+        res.status(500).send('Error updating event: ' + err.message);
+    }
+});
+
+// Unfeature Event (Protected - Admin only)
+app.post('/unfeature-event/:id', requireAuth, async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        console.log('❌ Admin unfeaturing event:', eventId);
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                const result = await Event.findByIdAndUpdate(eventId, { featured: false }, { new: true });
+                if (result) {
+                    console.log('✅ Event unfeatured in MongoDB Atlas');
+                    res.status(200).json({ success: true });
+                } else {
+                    console.log('❌ Event not found in MongoDB');
+                    res.status(404).json({ error: 'Event not found' });
+                }
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            // For temporary storage
+            const eventIndex = tempEvents.findIndex(evt => evt._id === eventId);
+            if (eventIndex !== -1) {
+                tempEvents[eventIndex].featured = false;
+                console.log('✅ Event unfeatured in temporary storage');
+                res.status(200).json({ success: true });
+            } else {
+                console.log('❌ Event not found in temporary storage');
+                res.status(404).json({ error: 'Event not found' });
+            }
+        }
+    } catch (err) {
+        console.log('Unfeature event error:', err);
+        res.status(500).json({ error: 'Error unfeaturing event' });
     }
 });
 

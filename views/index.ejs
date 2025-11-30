@@ -54,73 +54,137 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="container">
-            <!-- Featured Events Section -->
-<!-- Featured Events Section -->
-<section class="events-section">
-    <h2 class="section-title">Upcoming Events</h2>
-    
-    <% if (featuredEvents && featuredEvents.length > 0) { %>
-        <div class="events-grid">
-            <% featuredEvents.forEach(function(event) { %>
-            <div class="event-card">
-                <!-- Image on the left -->
-                <div class="event-image-container">
-                    <img src="/event-image/<%= event._id %>" alt="<%= event.title %>" class="event-image" height="100%">
-                </div>
+            <!-- Events Section -->
+            <section class="events-section">
+                <h2 class="section-title">Church Events & Programs</h2>
                 
-                <!-- Event details on the right -->
-                <div class="event-content">
-                    <div>
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="event-date">
-                                <i class="far fa-calendar"></i> 
-                                <%= new Date(event.date).toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric'
-                                }) %>
-                            </span>
-                            <% if (event.featured) { %>
-                                <span class="event-featured">Featured</span>
-                            <% } %>
+                <% if (featuredEvents && featuredEvents.length > 0) { %>
+                    <div class="events-grid">
+                        <% featuredEvents.forEach(function(event) { %>
+                        <div class="event-card <%= event.status %> <%= event.featured ? 'featured' : '' %>">
+                            <!-- Image on the left -->
+                            <div class="event-image-container">
+                                <img src="/event-image/<%= event._id %>" alt="<%= event.title %>" class="event-image">
+                            </div>
+                            
+                            <!-- Event details on the right -->
+                            <div class="event-content">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="event-date">
+                                            <i class="far fa-calendar"></i> 
+                                            <% if (event.endDate) { %>
+                                                <!-- Multi-day event date range -->
+                                                <%= new Date(event.date).toLocaleDateString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric'
+                                                }) %> - 
+                                                <%= new Date(event.endDate).toLocaleDateString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                }) %>
+                                            <% } else { %>
+                                                <!-- Single-day event -->
+                                                <%= new Date(event.date).toLocaleDateString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                }) %>
+                                            <% } %>
+                                        </span>
+                                        <div class="event-badges">
+                                            <% if (event.featured) { %>
+                                                <span class="event-featured">Featured</span>
+                                            <% } %>
+                                            <span class="event-status-badge event-status-<%= event.status %>">
+                                                <% if (event.status === 'upcoming') { %>
+                                                    Upcoming
+                                                <% } else if (event.status === 'ongoing') { %>
+                                                    🔥 Ongoing
+                                                <% } else if (event.status === 'completed') { %>
+                                                    Past Event
+                                                <% } else if (event.status === 'cancelled') { %>
+                                                    Cancelled
+                                                <% } %>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <h3 class="event-title"><%= event.title %></h3>
+                                    
+                                    <div class="event-venue">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span><%= event.venue %></span>
+                                    </div>
+                                    
+                                    <p class="event-description"><%= event.description %></p>
+                                    
+                                    <!-- Show time for single-day events -->
+                                    <% if (!event.endDate) { %>
+                                        <div class="event-time">
+                                            <i class="far fa-clock"></i>
+                                            <span><%= new Date(event.date).toLocaleTimeString('en-US', { 
+                                                hour: 'numeric', 
+                                                minute: '2-digit',
+                                                hour12: true 
+                                            }) %></span>
+                                        </div>
+                                    <% } %>
+                                </div>
+                                
+                                <!-- Event actions based on status -->
+                                <div class="event-actions">
+                                    <% if (event.status === 'upcoming' && event.link) { %>
+                                        <a href="<%= event.link %>" target="_blank" class="btn btn-small">
+                                            <i class="fas fa-external-link-alt"></i> Register Now
+                                        </a>
+                                    <% } else if (event.status === 'ongoing' && event.link) { %>
+                                        <a href="<%= event.link %>" target="_blank" class="btn btn-small btn-warning">
+                                            <i class="fas fa-video"></i> Join Live Now
+                                        </a>
+                                    <% } else if (event.status === 'completed') { %>
+                                        <button class="btn btn-small btn-outline" onclick="shareEvent('<%= event.title %>', '<%= event.link ? event.link : "" %>')">
+                                            <i class="fas fa-share-alt"></i> Share
+                                        </button>
+                                    <% } %>
+                                    
+                                    <% if (event.link && event.status !== 'completed') { %>
+                                        <a href="<%= event.link %>" target="_blank" class="btn btn-small btn-outline">
+                                            <i class="fas fa-info-circle"></i> Details
+                                        </a>
+                                    <% } %>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <h3 class="event-title"><%= event.title %></h3>
-                        
-                        <div class="event-venue">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span><%= event.venue %></span>
-                        </div>
-                        
-                        <p class="event-description"><%= event.description %></p>
+                        <% }); %>
                     </div>
                     
-                    <!-- <div class="event-actions">
-                        <% if (event.link) { %>
-                            <a href="<%= event.link %>" target="_blank" class="btn btn-small">
-                                <i class="fas fa-external-link-alt"></i> Learn More
+                    <!-- Show event count with ongoing events highlighted -->
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle"></i> 
+                        Showing <%= featuredEvents.length %> events 
+                        (<%= featuredEvents.filter(e => e.status === 'upcoming').length %> upcoming, 
+                         <%= featuredEvents.filter(e => e.status === 'ongoing').length %> ongoing,
+                         <%= featuredEvents.filter(e => e.status === 'completed').length %> past)
+                        <% if (isAdmin) { %>
+                            <a href="/admin-events" class="alert-link float-end">Manage Events</a>
+                        <% } %>
+                    </div>
+                    
+                <% } else { %>
+                    <div class="no-events">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h4>No Events Scheduled</h4>
+                        <p class="text-muted">Check back later for upcoming events and programs.</p>
+                        <% if (isAdmin) { %>
+                            <a href="/admin-events" class="btn btn-primary">
+                                <i class="fas fa-plus-circle"></i> Add Events
                             </a>
                         <% } %>
-                        <button class="btn btn-outline btn-small" onclick="shareEvent('<%= event.title %>', '<%= event.link ? event.link : "" %>')">
-                            <i class="fas fa-share-alt"></i> Share
-                        </button>
-                    </div> -->
-                </div>
-            </div>
-            <% }); %>
-        </div>
-    <% } else { %>
-        <div class="no-events">
-            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-            <h4>No Events Scheduled</h4>
-            <p class="text-muted">Check back later for upcoming events and programs.</p>
-            <% if (isAdmin) { %>
-                <a href="/admin-events" class="btn btn-primary">
-                    <i class="fas fa-plus-circle"></i> Add Events
-                </a>
-            <% } %>
-        </div>
-    <% } %>
-</section>
+                    </div>
+                <% } %>
+            </section>
 
             <!-- Vision and Mandate Section -->
             <section id="vision-mandate" class="vision-section">
@@ -360,8 +424,10 @@
             const nav = document.querySelector('nav ul');
             if (nav.style.display === 'flex') {
                 nav.style.display = 'none';
+                this.innerHTML = '<i class="fas fa-bars"></i>';
             } else {
                 nav.style.display = 'flex';
+                this.innerHTML = '<i class="fas fa-times"></i>';
             }
         });
 
@@ -402,10 +468,14 @@
         // Responsive navigation
         function handleResize() {
             const nav = document.querySelector('nav ul');
+            const mobileMenu = document.querySelector('.mobile-menu');
             if (window.innerWidth > 768) {
                 nav.style.display = 'flex';
+                mobileMenu.style.display = 'none';
             } else {
                 nav.style.display = 'none';
+                mobileMenu.style.display = 'block';
+                mobileMenu.innerHTML = '<i class="fas fa-bars"></i>';
             }
         }
         window.addEventListener('resize', handleResize);
@@ -434,42 +504,51 @@
         });
 
         // Share event function
-// Share event function
-function shareEvent(title, eventLink) {
-    // Use event link if provided, otherwise use current page URL
-    const shareUrl = eventLink || window.location.href;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: title,
-            url: shareUrl
-        }).catch(err => {
-            console.log('Error sharing:', err);
-            // Fallback to clipboard
-            copyToClipboard(`${title} - ${shareUrl}`);
-        });
-    } else {
-        // Fallback: copy to clipboard
-        copyToClipboard(`${title} - ${shareUrl}`);
-    }
-}
+        function shareEvent(title, eventLink) {
+            // Use event link if provided, otherwise use current page URL
+            const shareUrl = eventLink || window.location.href;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: title,
+                    url: shareUrl
+                }).catch(err => {
+                    console.log('Error sharing:', err);
+                    // Fallback to clipboard
+                    copyToClipboard(`${title} - ${shareUrl}`);
+                });
+            } else {
+                // Fallback: copy to clipboard
+                copyToClipboard(`${title} - ${shareUrl}`);
+            }
+        }
 
-// Clipboard function
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Event information copied to clipboard!');
-    }).catch(err => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert('Event information copied to clipboard!');
-    });
-}
+        // Clipboard function
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Event information copied to clipboard!');
+            }).catch(err => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Event information copied to clipboard!');
+            });
+        }
+
+        // Force desktop view on mobile
+        function forceDesktopView() {
+            if (window.innerWidth < 768) {
+                document.body.style.minWidth = '1200px';
+                document.body.style.overflowX = 'auto';
+            }
+        }
+
+        window.addEventListener('load', forceDesktopView);
+        window.addEventListener('resize', forceDesktopView);
     </script>
 </body>
-
 </html>
