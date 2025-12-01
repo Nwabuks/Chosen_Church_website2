@@ -182,14 +182,15 @@
                 </div>
             </div>
             <!-- Add this button to your existing admin-actions div -->
-<a href="/admin-events" class="btn btn-warning">
-    <i class="fas fa-calendar-alt"></i> Manage Events
-</a>
+
         </div>
     </div>
 
     <!-- Admin Content -->
     <div class="container admin-container">
+<a href="/admin-events" class="btn btn-warning">
+    <i class="fas fa-calendar-alt"></i> Manage Events
+</a>
         <!-- Success Message -->
         <% if (success) { %>
             <div class="alert alert-success alert-dismissible fade show">
@@ -600,4 +601,5 @@
         document.addEventListener('DOMContentLoaded', loadMessages);
     </script>
 </body>
+
 </html>
