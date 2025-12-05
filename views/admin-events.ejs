@@ -173,7 +173,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Event Image *</label>
-                    <div class="file-upload" id="imageUploadArea">
+                    <!-- <div class="file-upload" id="imageUploadArea">
                         <i class="fas fa-image fa-3x text-primary mb-3"></i>
                         <h5>Drop event image here or click to browse</h5>
                         <p class="text-muted">Supported formats: JPG, PNG, GIF (Max: 5MB)</p>
@@ -183,7 +183,40 @@
                             <i class="fas fa-folder-open"></i> Choose Image
                         </button>
                         <div id="imageName" class="mt-2 text-success fw-bold"></div>
-                    </div>
+                    </div> -->
+                    <!-- MOBILE-FRIENDLY FILE UPLOAD -->
+<div class="file-upload" id="imageUploadArea">
+    <i class="fas fa-image fa-3x text-primary mb-3"></i>
+    
+    <!-- VISIBLE FILE INPUT FOR MOBILE -->
+    <input type="file" class="form-control d-md-none mb-3" 
+           id="eventImageMobile" name="eventImage" 
+           accept=".jpg,.jpeg,.png,.gif,.webp" 
+           style="opacity: 1; position: relative; z-index: 1;"
+           onchange="handleMobileFileSelect(this)">
+    
+    <!-- DESKTOP VERSION (HIDDEN ON MOBILE) -->
+    <div class="d-none d-md-block">
+        <h5>Drop event image here or click to browse</h5>
+        <p class="text-muted">Supported formats: JPG, PNG, GIF, WebP (Max: 5MB)</p>
+        <input type="file" class="d-none" id="eventImageDesktop" name="eventImage" 
+               accept=".jpg,.jpeg,.png,.gif,.webp">
+        <button type="button" class="btn btn-primary mt-2" id="desktopUploadBtn">
+            <i class="fas fa-folder-open"></i> Choose Image
+        </button>
+    </div>
+    
+    <!-- MOBILE INSTRUCTIONS -->
+    <div class="d-md-none text-center">
+        <h5>Tap to select image</h5>
+        <p class="text-muted">Use the file selector above</p>
+        <div class="alert alert-info small mt-2">
+            <i class="fas fa-mobile-alt"></i> <strong>Mobile Tip:</strong> Use camera or gallery
+        </div>
+    </div>
+    
+    <div id="imageName" class="mt-2 text-success fw-bold"></div>
+</div>
                     <img id="imagePreview" class="image-preview" alt="Image preview">
                 </div>
 
@@ -233,7 +266,7 @@
     </div>
 
 <script>
-    // Image upload handling
+    // ===== MOBILE-FRIENDLY FILE UPLOAD HANDLING =====
     const imageInput = document.getElementById('eventImage');
     const imageUploadArea = document.getElementById('imageUploadArea');
     const imageNameDisplay = document.getElementById('imageName');
@@ -245,122 +278,372 @@
         // Set default start date to current datetime
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('eventDate').value = now.toISOString().slice(0, 16);
+        const eventDateInput = document.getElementById('eventDate');
+        if (eventDateInput) {
+            eventDateInput.value = now.toISOString().slice(0, 16);
+        }
         
         // Set default end date to start date + 2 hours (optional)
-        const endDate = new Date(now);
-        endDate.setHours(endDate.getHours() + 2);
-        document.getElementById('eventEndDate').value = endDate.toISOString().slice(0, 16);
+        const endDateInput = document.getElementById('eventEndDate');
+        if (endDateInput) {
+            const endDate = new Date(now);
+            endDate.setHours(endDate.getHours() + 2);
+            endDateInput.value = endDate.toISOString().slice(0, 16);
+        }
         
         // Validate that end date is after start date
-        document.getElementById('eventDate').addEventListener('change', function() {
-            const startDate = new Date(this.value);
-            const endDateInput = document.getElementById('eventEndDate');
-            const endDate = new Date(endDateInput.value);
-            
-            if (endDate <= startDate) {
-                endDateInput.value = '';
-                alert('End date must be after start date');
-            }
-        });
+        if (eventDateInput) {
+            eventDateInput.addEventListener('change', function() {
+                const startDate = new Date(this.value);
+                const endDateInput = document.getElementById('eventEndDate');
+                if (endDateInput && endDateInput.value) {
+                    const endDate = new Date(endDateInput.value);
+                    
+                    if (endDate <= startDate) {
+                        endDateInput.value = '';
+                        showMobileAlert('End date must be after start date');
+                    }
+                }
+            });
+        }
+
+        // Initialize mobile file upload listeners
+        initMobileFileUpload();
     });
 
-    // Image selection handling
-    imageInput.addEventListener('change', function(e) {
-        if (this.files.length > 0) {
-            const file = this.files[0];
-            imageNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    // ===== MOBILE FILE UPLOAD INITIALIZATION =====
+    function initMobileFileUpload() {
+        // Handle mobile file input if it exists
+        const mobileFileInput = document.getElementById('eventImageMobile');
+        if (mobileFileInput) {
+            mobileFileInput.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    handleFileSelection(this.files[0]);
+                }
+            });
+        }
+
+        // Handle desktop file input if it exists
+        const desktopFileInput = document.getElementById('eventImageDesktop');
+        const desktopUploadBtn = document.getElementById('desktopUploadBtn');
+        
+        if (desktopUploadBtn && desktopFileInput) {
+            desktopUploadBtn.addEventListener('click', function() {
+                desktopFileInput.click();
+            });
             
-            // Validate file type
-            if (!file.type.startsWith('image/')) {
-                alert('Error: Only image files are allowed!');
-                this.value = '';
-                imageNameDisplay.textContent = '';
-                return;
-            }
+            desktopFileInput.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    handleFileSelection(this.files[0]);
+                }
+            });
+        }
+
+        // Add touch support for file upload area
+        if (imageUploadArea && 'ontouchstart' in window) {
+            imageUploadArea.style.cursor = 'pointer';
             
-            // Validate file size
-            if (file.size > 5 * 1024 * 1024) {
-                alert('Error: File size must be less than 5MB!');
-                this.value = '';
-                imageNameDisplay.textContent = '';
-                return;
-            }
-            
-            // Show preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
+            imageUploadArea.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+                
+                // On mobile, trigger file input
+                if (mobileFileInput) {
+                    mobileFileInput.click();
+                } else if (imageInput) {
+                    imageInput.click();
+                }
+            }, { passive: false });
+
+            imageUploadArea.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+            }, { passive: false });
+        }
+    }
+
+    // ===== UNIFIED FILE HANDLER =====
+    function handleFileSelection(file) {
+        if (!file) return;
+        
+        imageNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        
+        // Validate file type
+        const validTypes = [
+            'image/jpeg', 'image/jpg', 'image/png', 
+            'image/gif', 'image/webp', 'image/heic', 
+            'image/heif'
+        ];
+        
+        if (!validTypes.includes(file.type.toLowerCase())) {
+            showMobileAlert('Error: Only image files are allowed! (JPG, PNG, GIF, WebP)');
+            resetFileInputs();
+            return;
+        }
+        
+        // Validate file size
+        if (file.size > 5 * 1024 * 1024) {
+            showMobileAlert('Error: File size must be less than 5MB!');
+            resetFileInputs();
+            return;
+        }
+        
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (imagePreview) {
                 imagePreview.src = e.target.result;
                 imagePreview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // Drag and drop functionality
-    imageUploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('dragover');
-    });
-
-    imageUploadArea.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-    });
-
-    imageUploadArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-        
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            imageInput.files = files;
-            imageInput.dispatchEvent(new Event('change'));
-        }
-    });
-
-    // Click to select file
-    imageUploadArea.addEventListener('click', function() {
-        imageInput.click();
-    });
-
-    // Form validation
-    eventForm.addEventListener('submit', function(e) {
-        const title = document.getElementById('eventTitle').value.trim();
-        const date = document.getElementById('eventDate').value;
-        const venue = document.getElementById('eventVenue').value.trim();
-        const description = document.getElementById('eventDescription').value.trim();
-        const startDate = new Date(date);
-        const endDateInput = document.getElementById('eventEndDate').value;
-        
-        let errors = [];
-
-        if (!title) errors.push('Event title is required');
-        if (!date) errors.push('Event date is required');
-        if (!venue) errors.push('Venue is required');
-        if (!description) errors.push('Description is required');
-        if (!imageInput.files.length) errors.push('Event image is required');
-        
-        // Validate end date
-        if (endDateInput) {
-            const endDate = new Date(endDateInput);
-            if (endDate <= startDate) {
-                errors.push('End date must be after start date');
             }
-        }
+        };
+        reader.onerror = function() {
+            showMobileAlert('Error reading file. Please try another image.');
+            resetFileInputs();
+        };
+        reader.readAsDataURL(file);
+    }
 
-        if (errors.length > 0) {
+    // ===== RESET FILE INPUTS =====
+    function resetFileInputs() {
+        const mobileInput = document.getElementById('eventImageMobile');
+        const desktopInput = document.getElementById('eventImageDesktop');
+        
+        if (mobileInput) mobileInput.value = '';
+        if (desktopInput) desktopInput.value = '';
+        if (imageInput) imageInput.value = '';
+        
+        if (imageNameDisplay) imageNameDisplay.textContent = '';
+        if (imagePreview) imagePreview.style.display = 'none';
+    }
+
+    // ===== DRAG AND DROP FUNCTIONALITY =====
+    if (imageUploadArea) {
+        // Desktop drag and drop
+        imageUploadArea.addEventListener('dragover', function(e) {
             e.preventDefault();
-            alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
-        } else {
+            this.classList.add('dragover');
+        });
+
+        imageUploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        imageUploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                
+                // For desktop, use the main image input
+                if (imageInput) {
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    imageInput.files = dataTransfer.files;
+                    handleFileSelection(file);
+                } else {
+                    handleFileSelection(file);
+                }
+            }
+        });
+
+        // Click to select file (desktop)
+        imageUploadArea.addEventListener('click', function(e) {
+            // Only trigger on desktop or if no mobile-specific input
+            if (window.innerWidth > 768 || !document.getElementById('eventImageMobile')) {
+                if (imageInput) {
+                    imageInput.click();
+                }
+            }
+        });
+    }
+
+    // ===== IMAGE INPUT HANDLER =====
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                handleFileSelection(this.files[0]);
+            }
+        });
+    }
+
+    // ===== FORM VALIDATION =====
+    if (eventForm) {
+        eventForm.addEventListener('submit', function(e) {
+            const title = document.getElementById('eventTitle')?.value.trim();
+            const date = document.getElementById('eventDate')?.value;
+            const venue = document.getElementById('eventVenue')?.value.trim();
+            const description = document.getElementById('eventDescription')?.value.trim();
+            const startDate = date ? new Date(date) : null;
+            const endDateInput = document.getElementById('eventEndDate')?.value;
+            
+            let errors = [];
+
+            if (!title) errors.push('Event title is required');
+            if (!date) errors.push('Event date is required');
+            if (!venue) errors.push('Venue is required');
+            if (!description) errors.push('Description is required');
+            
+            // Check if ANY file input has a file (MOBILE COMPATIBLE)
+            let hasFile = false;
+            
+            // Check mobile input
+            const mobileInput = document.getElementById('eventImageMobile');
+            if (mobileInput && mobileInput.files.length > 0) hasFile = true;
+            
+            // Check desktop input
+            const desktopInput = document.getElementById('eventImageDesktop');
+            if (desktopInput && desktopInput.files.length > 0) hasFile = true;
+            
+            // Check main input
+            if (imageInput && imageInput.files.length > 0) hasFile = true;
+            
+            if (!hasFile) {
+                errors.push('Event image is required');
+            }
+            
+            // Validate end date
+            if (endDateInput && startDate) {
+                const endDate = new Date(endDateInput);
+                if (endDate <= startDate) {
+                    errors.push('End date must be after start date');
+                }
+            }
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                
+                // Mobile-friendly alert
+                if ('ontouchstart' in window || window.innerWidth <= 768) {
+                    showMobileErrorList(errors);
+                } else {
+                    alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
+                }
+                return;
+            }
+
+            // Validate file size again before upload
+            let selectedFile;
+            if (mobileInput && mobileInput.files.length > 0) {
+                selectedFile = mobileInput.files[0];
+            } else if (desktopInput && desktopInput.files.length > 0) {
+                selectedFile = desktopInput.files[0];
+            } else if (imageInput && imageInput.files.length > 0) {
+                selectedFile = imageInput.files[0];
+            }
+
+            if (selectedFile && selectedFile.size > 5 * 1024 * 1024) {
+                e.preventDefault();
+                showMobileAlert('Error: File size must be less than 5MB!');
+                return;
+            }
+
             // Show loading state
             const submitBtn = this.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-            submitBtn.disabled = true;
-        }
-    });
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.disabled = true;
+                
+                // Re-enable button after 30 seconds in case of error
+                setTimeout(() => {
+                    submitBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Event';
+                    submitBtn.disabled = false;
+                }, 30000);
+            }
+        });
+    }
 
-    // Load and display events - UPDATED FOR VERTICAL LAYOUT
+    // ===== MOBILE-FRIENDLY ALERT SYSTEM =====
+    function showMobileAlert(message) {
+        if ('ontouchstart' in window || window.innerWidth <= 768) {
+            // Use Bootstrap modal for mobile
+            const modalId = 'mobileAlertModal';
+            let modalElement = document.getElementById(modalId);
+            
+            if (!modalElement) {
+                const modalHTML = `
+                    <div class="modal fade" id="${modalId}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header bg-warning">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-exclamation-triangle"></i> Notice
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p id="mobileAlertMessage"></p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                const modalDiv = document.createElement('div');
+                modalDiv.innerHTML = modalHTML;
+                document.body.appendChild(modalDiv);
+                modalElement = document.getElementById(modalId);
+            }
+            
+            document.getElementById('mobileAlertMessage').textContent = message;
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            alert(message);
+        }
+    }
+
+    function showMobileErrorList(errors) {
+        const modalId = 'mobileErrorModal';
+        let modalElement = document.getElementById(modalId);
+        
+        if (!modalElement) {
+            const modalHTML = `
+                <div class="modal fade" id="${modalId}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-exclamation-circle"></i> Fix Required
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-2">Please fix the following errors:</p>
+                                <ul id="mobileErrorList" class="mb-0"></ul>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const modalDiv = document.createElement('div');
+            modalDiv.innerHTML = modalHTML;
+            document.body.appendChild(modalDiv);
+            modalElement = document.getElementById(modalId);
+        }
+        
+        const errorList = document.getElementById('mobileErrorList');
+        errorList.innerHTML = '';
+        errors.forEach(error => {
+            const li = document.createElement('li');
+            li.textContent = error;
+            errorList.appendChild(li);
+        });
+        
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
+
+    // ===== LOAD AND DISPLAY EVENTS - UPDATED FOR VERTICAL LAYOUT =====
     async function loadEvents() {
         try {
             const response = await fetch('/events-data');
@@ -442,7 +725,7 @@
         }
     }
 
-    // Helper function to generate event HTML
+    // ===== HELPER FUNCTION TO GENERATE EVENT HTML =====
     function generateEventHTML(event, isFeatured) {
         const eventDate = new Date(event.date);
         const endDate = event.endDate ? new Date(event.endDate) : null;
@@ -545,7 +828,7 @@
         `;
     }
 
-    // Unfeature event function
+    // ===== UNFEATURE EVENT FUNCTION =====
     function unfeatureEvent(eventId) {
         if (confirm('Are you sure you want to remove this event from featured?')) {
             fetch(`/unfeature-event/${eventId}`, {
@@ -558,17 +841,48 @@
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    alert('Error unfeaturing event');
+                    showMobileAlert('Error unfeaturing event');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error unfeaturing event');
+                showMobileAlert('Error unfeaturing event');
             });
         }
     }
 
-    // Load events when page loads
+    // ===== FORM RESET HANDLER =====
+    if (eventForm) {
+        const resetBtn = eventForm.querySelector('button[type="reset"]');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                // Clear file inputs
+                resetFileInputs();
+                
+                // Reset loading state if any
+                const submitBtn = eventForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Event';
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+    }
+
+    // ===== MOBILE FORM FIELD FOCUS FIX =====
+    if ('ontouchstart' in window) {
+        // Prevent zoom on focus for iOS
+        document.querySelectorAll('input, textarea, select').forEach(el => {
+            el.addEventListener('focus', function() {
+                this.style.fontSize = '16px';
+            });
+            el.addEventListener('blur', function() {
+                this.style.fontSize = '';
+            });
+        });
+    }
+
+    // ===== LOAD EVENTS WHEN PAGE LOADS =====
     document.addEventListener('DOMContentLoaded', loadEvents);
 </script>
 </body>
