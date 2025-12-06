@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Announcement | ChiBooks</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .create-container {
+            min-height: 80vh;
+            padding: 2rem 0;
+        }
+        .create-header {
+            background: linear-gradient(135deg, #17a2b8, #0d6efd);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .create-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .color-preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .color-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        .color-option.selected {
+            border-color: #212529;
+            transform: scale(1.1);
+        }
+        .priority-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 10px;
+            border: 2px solid transparent;
+        }
+        .priority-option:hover {
+            transform: scale(1.05);
+        }
+        .priority-option.selected {
+            border-color: #212529;
+            transform: scale(1.1);
+        }
+        .live-preview {
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            min-height: 150px;
+            transition: all 0.3s;
+        }
+        .file-upload {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        .file-upload:hover {
+            border-color: #17a2b8;
+            background: #f0f4f8;
+        }
+        .image-preview {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <!-- Create Header -->
+    <div class="create-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-plus-circle"></i> Create Announcement</h1>
+                    <p class="mb-0">Create stickers, banners, and announcements for the homepage</p>
+                </div>
+                <div>
+                    <a href="/admin-announcements" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Announcements
+                    </a>
+                    <a href="/admin-logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Content -->
+    <div class="container create-container">
+        <!-- Admin Actions -->
+        <div class="admin-actions mb-4">
+            <a href="/admin-announcements" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Announcements
+            </a>
+            <a href="/" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> View Website
+            </a>
+        </div>
+
+        <!-- Create Form -->
+        <div class="create-section">
+            <h3 class="mb-4"><i class="fas fa-bullhorn"></i> New Announcement</h3>
+            
+            <form id="announcementForm" action="/create-announcement" method="POST" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- Title -->
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="title">Announcement Title *</label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   placeholder="e.g., Happy New Month, Special Prayer, etc." 
+                                   maxlength="100" required>
+                            <small class="text-muted">Max 100 characters</small>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="form-group mb-3">
+                            <label class="form-label" for="content">Announcement Content *</label>
+                            <textarea class="form-control" id="content" name="content" 
+                                      rows="4" 
+                                      placeholder="Write your announcement message here..."
+                                      maxlength="500" required></textarea>
+                            <small class="text-muted">Max 500 characters</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <!-- Type Selection -->
+                        <div class="form-group mb-3">
+                            <label class="form-label">Announcement Type</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="type" id="type-announcement" value="announcement" checked>
+                                <label class="btn btn-outline-info" for="type-announcement">
+                                    <i class="fas fa-bullhorn"></i> Announcement
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="type" id="type-sticker" value="sticker">
+                                <label class="btn btn-outline-success" for="type-sticker">
+                                    <i class="fas fa-sticky-note"></i> Sticker
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="type" id="type-banner" value="banner">
+                                <label class="btn btn-outline-primary" for="type-banner">
+                                    <i class="fas fa-flag"></i> Banner
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Priority -->
+                        <div class="form-group mb-3">
+                            <label class="form-label">Priority Level (1-5)</label>
+                            <p class="text-muted small mb-2">Higher priority shows first (max 3 visible)</p>
+                            <div class="d-flex">
+                                <% for(let i = 1; i <= 5; i++) { %>
+                                <div class="priority-option priority-<%= i %>" 
+                                     onclick="selectPriority(<%= i %>)"
+                                     style="background: <%= i === 1 ? '#6c757d' : i === 2 ? '#17a2b8' : i === 3 ? '#0d6efd' : i === 4 ? '#ffc107' : '#dc3545' %>; color: <%= i === 4 ? '#212529' : 'white' %>;">
+                                    <%= i %>
+                                </div>
+                                <% } %>
+                            </div>
+                            <input type="hidden" id="priority" name="priority" value="3">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Colors -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Background Color</label>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="color-preview" id="bgColorPreview" style="background: #000000dc;"></div>
+                                <input type="color" class="form-control form-control-color" id="backgroundColor" 
+                                       name="backgroundColor" value="#000000dc" title="Choose background color">
+                            </div>
+                            <div class="color-options">
+                                <div class="color-option" style="background: #000000dc;" onclick="selectColor('#000000dc', 'bg')"></div>
+                                <div class="color-option" style="background: #006e00;" onclick="selectColor('#006e00', 'bg')"></div>
+                                <div class="color-option" style="background: #17a2b8;" onclick="selectColor('#17a2b8', 'bg')"></div>
+                                <div class="color-option" style="background: #ffc107;" onclick="selectColor('#ffc107', 'bg')"></div>
+                                <div class="color-option" style="background: #dc3545;" onclick="selectColor('#dc3545', 'bg')"></div>
+                                <div class="color-option" style="background: #6c757d;" onclick="selectColor('#6c757d', 'bg')"></div>
+                                <div class="color-option" style="background: #ffffff; border: 1px solid #dee2e6;" onclick="selectColor('#ffffff', 'bg')"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Text Color</label>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="color-preview" id="textColorPreview" style="background: #ffffff;"></div>
+                                <input type="color" class="form-control form-control-color" id="textColor" 
+                                       name="textColor" value="#ffffff" title="Choose text color">
+                            </div>
+                            <div class="color-options">
+                                <div class="color-option" style="background: #ffffff; border: 1px solid #dee2e6;" onclick="selectColor('#ffffff', 'text')"></div>
+                                <div class="color-option" style="background: #000000;" onclick="selectColor('#000000', 'text')"></div>
+                                <div class="color-option" style="background: #006e00;" onclick="selectColor('#006e00', 'text')"></div>
+                                <div class="color-option" style="background: #0d6efd;" onclick="selectColor('#0d6efd', 'text')"></div>
+                                <div class="color-option" style="background: #212529;" onclick="selectColor('#212529', 'text')"></div>
+                                <div class="color-option" style="background: #ffc107;" onclick="selectColor('#ffc107', 'text')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Featured & Expiration -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="featured" name="featured">
+                                <label class="form-check-label" for="featured">
+                                    <i class="fas fa-star text-warning"></i> Feature this announcement
+                                    <small class="d-block text-muted">Featured announcements show above featured events</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="expiresAt">Expiration Date (Optional)</label>
+                            <input type="date" class="form-control" id="expiresAt" name="expiresAt">
+                            <small class="text-muted">Announcement will auto-hide after this date</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Image Upload -->
+                <div class="form-group mb-4">
+                    <label class="form-label">Announcement Image (Optional)</label>
+                    <div class="file-upload" id="imageUploadArea">
+                        <i class="fas fa-image fa-3x text-primary mb-3"></i>
+                        <h5>Drop image here or click to browse</h5>
+                        <p class="text-muted">Supported formats: JPG, PNG, GIF (Max: 5MB)</p>
+                        <input type="file" class="d-none" id="announcementImage" name="announcementImage" 
+                               accept=".jpg,.jpeg,.png,.gif">
+                        <button type="button" class="btn btn-primary mt-2" onclick="document.getElementById('announcementImage').click()">
+                            <i class="fas fa-folder-open"></i> Choose Image
+                        </button>
+                        <div id="imageName" class="mt-2 text-success fw-bold"></div>
+                    </div>
+                    <img id="imagePreview" class="image-preview" alt="Image preview">
+                </div>
+                
+                <!-- Live Preview -->
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-eye"></i> Live Preview</label>
+                    <div class="live-preview" id="livePreview">
+                        <div class="text-center text-muted py-4">
+                            Preview will appear here as you type
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Submit Buttons -->
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-save"></i> Create Announcement
+                    </button>
+                    <a href="/admin-announcements" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Color selection
+        function selectColor(color, type) {
+            if (type === 'bg') {
+                document.getElementById('backgroundColor').value = color;
+                document.getElementById('bgColorPreview').style.background = color;
+            } else {
+                document.getElementById('textColor').value = color;
+                document.getElementById('textColorPreview').style.background = color;
+            }
+            updatePreview();
+        }
+        
+        // Priority selection
+        function selectPriority(level) {
+            document.getElementById('priority').value = level;
+            
+            // Update visual selection
+            document.querySelectorAll('.priority-option').forEach((el, index) => {
+                if (index + 1 === level) {
+                    el.classList.add('selected');
+                    el.style.borderColor = '#212529';
+                } else {
+                    el.classList.remove('selected');
+                    el.style.borderColor = 'transparent';
+                }
+            });
+            
+            updatePreview();
+        }
+        
+        // Image upload handling
+        const imageInput = document.getElementById('announcementImage');
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        const imageNameDisplay = document.getElementById('imageName');
+        const imagePreview = document.getElementById('imagePreview');
+        
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    imageNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                    
+                    // Validate file type
+                    if (!file.type.startsWith('image/')) {
+                        alert('Error: Only image files are allowed!');
+                        this.value = '';
+                        imageNameDisplay.textContent = '';
+                        return;
+                    }
+                    
+                    // Validate file size
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Error: File size must be less than 5MB!');
+                        this.value = '';
+                        imageNameDisplay.textContent = '';
+                        return;
+                    }
+                    
+                    // Show preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                        updatePreview();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Drag and drop
+            if (imageUploadArea) {
+                imageUploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.classList.add('dragover');
+                });
+                
+                imageUploadArea.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('dragover');
+                });
+                
+                imageUploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('dragover');
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        imageInput.files = files;
+                        imageInput.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                imageUploadArea.addEventListener('click', function() {
+                    imageInput.click();
+                });
+            }
+        }
+        
+        // Live preview update
+        function updatePreview() {
+            const title = document.getElementById('title').value || 'Announcement Title';
+            const content = document.getElementById('content').value || 'Announcement content will appear here...';
+            const bgColor = document.getElementById('backgroundColor').value;
+            const textColor = document.getElementById('textColor').value;
+            const priority = document.getElementById('priority').value;
+            const type = document.querySelector('input[name="type"]:checked').value;
+            const featured = document.getElementById('featured').checked;
+            
+            // Get type label and color
+            let typeLabel, typeColor;
+            switch(type) {
+                case 'sticker':
+                    typeLabel = 'Sticker';
+                    typeColor = '#66ca7d';
+                    break;
+                case 'banner':
+                    typeLabel = 'Banner';
+                    typeColor = '#0d6efd';
+                    break;
+                default:
+                    typeLabel = 'Announcement';
+                    typeColor = '#17a2b8';
+            }
+            
+            // Priority colors
+            const priorityColors = ['#6c757d', '#17a2b8', '#0d6efd', '#ffc107', '#dc3545'];
+            const priorityColor = priorityColors[priority - 1] || '#0d6efd';
+            
+            // Build preview HTML
+            let previewHTML = `
+                <div style="background: ${bgColor}; color: ${textColor}; border-radius: 8px; padding: 1.5rem; border-left: 4px solid ${typeColor};">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center">
+                            <div style="width: 30px; height: 30px; border-radius: 50%; background: ${priorityColor}; color: ${priorityColor === '#ffc107' ? '#212529' : 'white'}; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px;">
+                                ${priority}
+                            </div>
+                            <div>
+                                <h5 class="mb-0" style="color: ${textColor};">${title}</h5>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <span style="background: ${typeColor}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
+                                        ${typeLabel}
+                                    </span>
+                                    ${featured ? '<span style="background: #ffc107; color: #212529; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;"><i class="fas fa-star"></i> Featured</span>' : ''}
+                                    <span style="background: #66ca7d; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
+                                        Active
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="mb-3" style="color: ${textColor};">${content}</p>
+                    
+                    <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px; font-size: 0.8rem; opacity: 0.8;">
+                        <i class="fas fa-calendar-plus"></i> Created: Today
+                        • Preview only
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('livePreview').innerHTML = previewHTML;
+        }
+        
+        // Initialize preview with default values
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default priority selection
+            selectPriority(3);
+            
+            // Update preview on input
+            document.getElementById('title').addEventListener('input', updatePreview);
+            document.getElementById('content').addEventListener('input', updatePreview);
+            document.getElementById('backgroundColor').addEventListener('input', updatePreview);
+            document.getElementById('textColor').addEventListener('input', updatePreview);
+            document.querySelectorAll('input[name="type"]').forEach(radio => {
+                radio.addEventListener('change', updatePreview);
+            });
+            document.getElementById('featured').addEventListener('change', updatePreview);
+            
+            // Set expiration date to 30 days from now by default
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 30);
+            document.getElementById('expiresAt').valueAsDate = futureDate;
+            
+            // Initial preview
+            updatePreview();
+            
+            // Form validation
+            const form = document.getElementById('announcementForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    const title = document.getElementById('title').value.trim();
+                    const content = document.getElementById('content').value.trim();
+                    
+                    if (!title || !content) {
+                        e.preventDefault();
+                        alert('Please fill in all required fields (Title and Content)');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+                    submitBtn.disabled = true;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

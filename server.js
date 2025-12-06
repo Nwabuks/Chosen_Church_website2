@@ -126,8 +126,83 @@ const eventUpload = multer({
     }
 });
 
-// Temporary storage for events (fallback)
-let tempEvents = [];
+// ===== ANNOUNCEMENT FILE UPLOAD CONFIG =====
+const announcementStorage = multer.memoryStorage();
+const announcementUpload = multer({
+    storage: announcementStorage,
+    fileFilter: function (req, file, cb) {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed'), false);
+        }
+    },
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB
+    }
+});
+
+
+// ===== ANNOUNCEMENT SCHEMA =====
+const announcementSchema = new mongoose.Schema({
+    title: { 
+        type: String, 
+        required: true,
+        maxlength: 100
+    },
+    content: { 
+        type: String, 
+        required: true,
+        maxlength: 500
+    },
+    priority: { 
+        type: Number, 
+        min: 1, 
+        max: 5, 
+        default: 3 
+    },
+    type: { 
+        type: String, 
+        enum: ['sticker', 'banner', 'announcement'], 
+        default: 'announcement' 
+    },
+    backgroundColor: { 
+        type: String, 
+        default: '#000000dc' 
+    },
+    textColor: { 
+        type: String, 
+        default: '#ffffff' 
+    },
+    imageFile: {
+        data: Buffer,
+        contentType: String,
+        filename: String,
+        size: Number
+    },
+    featured: { 
+        type: Boolean, 
+        default: false 
+    },
+    active: { 
+        type: Boolean, 
+        default: true 
+    },
+    expiresAt: { 
+        type: Date 
+    }, // Optional expiration (hidden from users)
+    displayOrder: { 
+        type: Number, 
+        default: 0 
+    }
+}, { 
+    timestamps: true 
+});
+
+const Announcement = mongoose.model('Announcement', announcementSchema);
+
+// Temporary storage fallback
+let tempAnnouncements = [];
 
 // ===== FILE UPLOAD CONFIGURATION =====
 const storage = multer.memoryStorage(); // Store files in memory as Buffer
@@ -293,56 +368,88 @@ app.get('/preview/:id', async (req, res) => {
 // Homepage - Show 3 recent messages and upcoming events
 // Homepage - Show events with status
 // Homepage - Show events with proper status
+// Homepage - Show announcements and events
 app.get('/', async (req, res) => {
     try {
-        let messages, events;
+        let messages, events, announcements;
         let usingMongoDB = false;
         let totalMessages = 0;
         
         try {
             if (mongoose.connection.readyState === 1) {
-                // Get only 3 most recent messages for homepage
+                // Get 3 most recent messages
                 messages = await Message.find().sort({ date: -1 }).limit(3);
                 totalMessages = await Message.countDocuments();
                 
-                // Get all active events
+                // Get active events
                 events = await Event.find({ active: true })
                                   .sort({ date: 1 })
                                   .limit(6);
                 
-                // Add status to each event
-                events = events.map(event => {
-                    return {
-                        ...event._doc,
-                        status: calculateEventStatus(event)
-                    };
-                });
+                // Add status to events
+                events = events.map(event => ({
+                    ...event._doc,
+                    status: calculateEventStatus(event)
+                }));
+                
+                // Get active announcements (max 3)
+                announcements = await Announcement.find({ 
+                    active: true,
+                    $or: [
+                        { expiresAt: null },
+                        { expiresAt: { $gt: new Date() } }
+                    ]
+                })
+                .sort({ 
+                    featured: -1, 
+                    priority: -1, 
+                    createdAt: -1 
+                })
+                .limit(3);
                 
                 usingMongoDB = true;
-                console.log('📥 Loaded', messages.length, 'recent messages and', events.length, 'events for homepage');
+                console.log('📥 Loaded:', 
+                    messages.length, 'messages,',
+                    events.length, 'events,',
+                    announcements.length, 'announcements'
+                );
             } else {
                 throw new Error('MongoDB not connected');
             }
         } catch (dbError) {
-            // Get first 3 messages from temporary storage
+            // Temporary storage fallback
             messages = tempMessages.slice(0, 3);
             totalMessages = tempMessages.length;
             
-            // Get events from temporary storage with status
+            // Events with status
             const now = new Date();
-            events = tempEvents.map(event => {
-                return {
-                    ...event,
-                    status: calculateEventStatus(event)
-                };
-            }).slice(0, 6);
+            events = tempEvents.map(event => ({
+                ...event,
+                status: calculateEventStatus(event)
+            })).slice(0, 6);
             
-            console.log('📥 Loaded', messages.length, 'recent messages and', events.length, 'events from temporary storage');
+            // Announcements (max 3)
+            announcements = tempAnnouncements
+                .filter(ann => ann.active && (!ann.expiresAt || new Date(ann.expiresAt) > new Date()))
+                .sort((a, b) => {
+                    if (a.featured && !b.featured) return -1;
+                    if (!a.featured && b.featured) return 1;
+                    if (a.priority !== b.priority) return b.priority - a.priority;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                })
+                .slice(0, 3);
+            
+            console.log('📥 Loaded from temp storage:', 
+                messages.length, 'messages,',
+                events.length, 'events,',
+                announcements.length, 'announcements'
+            );
         }
         
         res.render('index', { 
             messages: messages, 
             featuredEvents: events,
+            announcements: announcements,
             isAdmin: false,
             usingMongoDB: usingMongoDB,
             totalMessages: totalMessages
@@ -352,13 +459,441 @@ app.get('/', async (req, res) => {
         res.render('index', { 
             messages: tempMessages.slice(0, 3), 
             featuredEvents: [],
+            announcements: [],
             isAdmin: false,
             usingMongoDB: false,
             totalMessages: tempMessages.length
         });
     }
 });
+// ===== ANNOUNCEMENT ROUTES =====
 
+// Announcements Admin Page
+app.get('/admin-announcements', requireAuth, async (req, res) => {
+    try {
+        const usingMongoDB = mongoose.connection.readyState === 1;
+        const success = req.query.success;
+        
+        res.render('announcements-admin', { 
+            usingMongoDB: usingMongoDB,
+            isAuthenticated: true,
+            success: success
+        });
+    } catch (err) {
+        console.log('Announcements admin page error:', err);
+        res.status(500).send('Error loading announcements admin page');
+    }
+});
+
+// Create Announcement Page
+app.get('/create-announcement', requireAuth, (req, res) => {
+    try {
+        res.render('create-announcement', {
+            usingMongoDB: mongoose.connection.readyState === 1,
+            isAuthenticated: true
+        });
+    } catch (err) {
+        console.log('Create announcement page error:', err);
+        res.status(500).send('Error loading create announcement page');
+    }
+});
+
+// Create Announcement Handler
+app.post('/create-announcement', requireAuth, announcementUpload.single('announcementImage'), async (req, res) => {
+    try {
+        const { 
+            title, 
+            content, 
+            priority, 
+            type, 
+            backgroundColor, 
+            textColor, 
+            featured,
+            expiresAt 
+        } = req.body;
+        
+        if (!title || !content) {
+            return res.status(400).send('Title and content are required');
+        }
+
+        const newAnnouncement = {
+            title: title,
+            content: content,
+            priority: parseInt(priority) || 3,
+            type: type || 'announcement',
+            backgroundColor: backgroundColor || '#000000dc',
+            textColor: textColor || '#ffffff',
+            featured: featured === 'on',
+            active: true,
+            displayOrder: 0
+        };
+
+        // Add expiration date if provided
+        if (expiresAt) {
+            newAnnouncement.expiresAt = new Date(expiresAt);
+        }
+
+        // Store image if provided
+        if (req.file) {
+            newAnnouncement.imageFile = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                filename: req.file.originalname,
+                size: req.file.size
+            };
+        }
+
+        console.log('📢 Admin creating announcement:', newAnnouncement.title);
+
+        try {
+            if (mongoose.connection.readyState === 1) {
+                const savedAnnouncement = new Announcement(newAnnouncement);
+                await savedAnnouncement.save();
+                console.log('✅ Announcement saved to MongoDB Atlas');
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            newAnnouncement._id = Date.now().toString();
+            newAnnouncement.createdAt = new Date();
+            newAnnouncement.updatedAt = new Date();
+            tempAnnouncements.unshift(newAnnouncement);
+            console.log('✅ Announcement saved to temporary storage');
+        }
+
+        res.redirect('/admin-announcements?success=Announcement created successfully');
+    } catch (err) {
+        console.log('Create announcement error:', err);
+        res.status(500).send('Error creating announcement: ' + err.message);
+    }
+});
+
+// Edit Announcement Page
+app.get('/edit-announcement/:id', requireAuth, async (req, res) => {
+    try {
+        const announcementId = req.params.id;
+        let announcement;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                announcement = await Announcement.findById(announcementId);
+            } else {
+                announcement = tempAnnouncements.find(ann => ann._id === announcementId);
+            }
+        } catch (dbError) {
+            announcement = tempAnnouncements.find(ann => ann._id === announcementId);
+        }
+
+        if (!announcement) {
+            return res.status(404).send('Announcement not found');
+        }
+
+        // Convert to plain object for JSON.stringify
+        const announcementData = announcement.toObject ? announcement.toObject() : announcement;
+        
+        res.render('edit-announcement', { 
+            announcement: announcement,
+            announcementData: JSON.stringify(announcementData), // Add this line
+            isAuthenticated: true,
+            usingMongoDB: mongoose.connection.readyState === 1
+        });
+    } catch (err) {
+        console.log('Edit announcement page error:', err);
+        res.status(500).send('Error loading edit announcement page');
+    }
+});
+
+// Update Announcement
+app.post('/update-announcement/:id', requireAuth, announcementUpload.single('announcementImage'), async (req, res) => {
+    try {
+        const announcementId = req.params.id;
+        const { 
+            title, 
+            content, 
+            priority, 
+            type, 
+            backgroundColor, 
+            textColor, 
+            featured,
+            active,
+            expiresAt,
+            removeImage 
+        } = req.body;
+        
+        if (!title || !content) {
+            return res.status(400).send('Title and content are required');
+        }
+
+        const updatedAnnouncement = {
+            title: title,
+            content: content,
+            priority: parseInt(priority) || 3,
+            type: type || 'announcement',
+            backgroundColor: backgroundColor || '#000000dc',
+            textColor: textColor || '#ffffff',
+            featured: featured === 'on',
+            active: active === 'on'
+        };
+
+        // Handle expiration date
+        if (expiresAt) {
+            updatedAnnouncement.expiresAt = new Date(expiresAt);
+        } else {
+            updatedAnnouncement.expiresAt = null;
+        }
+
+        // Handle image updates
+        if (removeImage === 'on') {
+            updatedAnnouncement.imageFile = null;
+        } else if (req.file) {
+            // Store new image
+            updatedAnnouncement.imageFile = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                filename: req.file.originalname,
+                size: req.file.size
+            };
+        } else {
+            // Keep existing image
+            let existingAnnouncement;
+            try {
+                if (mongoose.connection.readyState === 1) {
+                    existingAnnouncement = await Announcement.findById(announcementId);
+                } else {
+                    existingAnnouncement = tempAnnouncements.find(ann => ann._id === announcementId);
+                }
+                updatedAnnouncement.imageFile = existingAnnouncement?.imageFile || null;
+            } catch (dbError) {
+                existingAnnouncement = tempAnnouncements.find(ann => ann._id === announcementId);
+                updatedAnnouncement.imageFile = existingAnnouncement?.imageFile || null;
+            }
+        }
+
+        console.log('📝 Admin updating announcement:', announcementId, updatedAnnouncement.title);
+
+        try {
+            if (mongoose.connection.readyState === 1) {
+                const result = await Announcement.findByIdAndUpdate(
+                    announcementId, 
+                    updatedAnnouncement, 
+                    { new: true }
+                );
+                if (result) {
+                    console.log('✅ Announcement updated in MongoDB Atlas');
+                } else {
+                    console.log('❌ Announcement not found in MongoDB');
+                    return res.status(404).send('Announcement not found');
+                }
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            const announcementIndex = tempAnnouncements.findIndex(ann => ann._id === announcementId);
+            if (announcementIndex !== -1) {
+                tempAnnouncements[announcementIndex] = { 
+                    ...tempAnnouncements[announcementIndex], 
+                    ...updatedAnnouncement,
+                    updatedAt: new Date()
+                };
+                console.log('✅ Announcement updated in temporary storage');
+            } else {
+                console.log('❌ Announcement not found in temporary storage');
+                return res.status(404).send('Announcement not found');
+            }
+        }
+
+        res.redirect('/admin-announcements?success=Announcement updated successfully');
+    } catch (err) {
+        console.log('Update announcement error:', err);
+        res.status(500).send('Error updating announcement: ' + err.message);
+    }
+});
+
+// Delete Announcement
+app.post('/delete-announcement/:id', requireAuth, async (req, res) => {
+    try {
+        const announcementId = req.params.id;
+        console.log('🗑️ Admin deleting announcement:', announcementId);
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                await Announcement.findByIdAndDelete(announcementId);
+                console.log('✅ Announcement deleted from MongoDB Atlas');
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            const initialLength = tempAnnouncements.length;
+            tempAnnouncements = tempAnnouncements.filter(ann => ann._id !== announcementId);
+            if (tempAnnouncements.length < initialLength) {
+                console.log('✅ Announcement deleted from temporary storage');
+            } else {
+                console.log('❌ Announcement not found in temporary storage');
+            }
+        }
+
+        res.redirect('/admin-announcements?success=Announcement deleted successfully');
+    } catch (err) {
+        console.log('Delete announcement error:', err);
+        res.status(500).send('Error deleting announcement');
+    }
+});
+
+// Toggle Announcement Active Status
+app.post('/toggle-announcement/:id', requireAuth, async (req, res) => {
+    try {
+        const announcementId = req.params.id;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                const announcement = await Announcement.findById(announcementId);
+                if (announcement) {
+                    announcement.active = !announcement.active;
+                    await announcement.save();
+                    console.log('✅ Announcement active status toggled:', announcement.active);
+                }
+            } else {
+                throw new Error('MongoDB not connected');
+            }
+        } catch (dbError) {
+            const announcementIndex = tempAnnouncements.findIndex(ann => ann._id === announcementId);
+            if (announcementIndex !== -1) {
+                tempAnnouncements[announcementIndex].active = !tempAnnouncements[announcementIndex].active;
+                console.log('✅ Announcement active status toggled in temporary storage');
+            }
+        }
+
+        res.redirect('/admin-announcements?success=Announcement status updated');
+    } catch (err) {
+        console.log('Toggle announcement error:', err);
+        res.status(500).send('Error toggling announcement');
+    }
+});
+
+// Get announcements data (JSON API for admin)
+app.get('/announcements-data', requireAuth, async (req, res) => {
+    try {
+        let announcements;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                announcements = await Announcement.find().sort({ 
+                    featured: -1, 
+                    priority: -1, 
+                    createdAt: -1 
+                });
+            } else {
+                announcements = tempAnnouncements;
+            }
+        } catch (dbError) {
+            announcements = tempAnnouncements;
+        }
+
+        res.json(announcements);
+    } catch (err) {
+        console.log('Error loading announcements data:', err);
+        res.status(500).json({ error: 'Failed to load announcements' });
+    }
+});
+
+// Get active announcements for homepage (max 3)
+app.get('/active-announcements', async (req, res) => {
+    try {
+        let announcements = [];
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                announcements = await Announcement.find({ 
+                    active: true,
+                    $or: [
+                        { expiresAt: null },
+                        { expiresAt: { $gt: new Date() } }
+                    ]
+                })
+                .sort({ 
+                    featured: -1, 
+                    priority: -1, 
+                    createdAt: -1 
+                })
+                .limit(3); // MAX 3 VISIBLE
+            } else {
+                announcements = tempAnnouncements
+                    .filter(ann => ann.active && (!ann.expiresAt || new Date(ann.expiresAt) > new Date()))
+                    .sort((a, b) => {
+                        if (a.featured && !b.featured) return -1;
+                        if (!a.featured && b.featured) return 1;
+                        if (a.priority !== b.priority) return b.priority - a.priority;
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    })
+                    .slice(0, 3);
+            }
+        } catch (dbError) {
+            announcements = tempAnnouncements
+                .filter(ann => ann.active && (!ann.expiresAt || new Date(ann.expiresAt) > new Date()))
+                .sort((a, b) => {
+                    if (a.featured && !b.featured) return -1;
+                    if (!a.featured && b.featured) return 1;
+                    if (a.priority !== b.priority) return b.priority - a.priority;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                })
+                .slice(0, 3);
+        }
+
+        res.json(announcements);
+    } catch (err) {
+        console.log('Error loading active announcements:', err);
+        res.json([]);
+    }
+});
+
+
+// Serve announcement images
+app.get('/announcement-image/:id', async (req, res) => {
+    try {
+        const announcementId = req.params.id;
+        let announcement;
+        
+        try {
+            if (mongoose.connection.readyState === 1) {
+                announcement = await Announcement.findById(announcementId);
+            } else {
+                announcement = tempAnnouncements.find(ann => ann._id === announcementId);
+            }
+        } catch (dbError) {
+            announcement = tempAnnouncements.find(ann => ann._id === announcementId);
+        }
+
+        if (!announcement || !announcement.imageFile || !announcement.imageFile.data) {
+            // Return a placeholder image
+            const placeholder = `
+                <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="100%" height="100%" fill="#f8f9fa"/>
+                    <text x="50%" y="50%" font-family="Arial" font-size="14" fill="#6c757d" 
+                          text-anchor="middle" dy=".3em">No Image</text>
+                </svg>
+            `;
+            res.setHeader('Content-Type', 'image/svg+xml');
+            return res.send(placeholder);
+        }
+
+        // Set content type with fallback
+        const contentType = announcement.imageFile.contentType || 'image/jpeg';
+        res.setHeader('Content-Type', contentType);
+        res.send(announcement.imageFile.data);
+    } catch (err) {
+        console.log('Announcement image error:', err);
+        // Return error placeholder
+        const errorImage = `
+            <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+                <rect width="100%" height="100%" fill="#f8d7da"/>
+                <text x="50%" y="50%" font-family="Arial" font-size="14" fill="#721c24" 
+                      text-anchor="middle" dy=".3em">Error Loading</text>
+            </svg>
+        `;
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.send(errorImage);
+    }
+});
 // Messages Page - Show ALL messages with featured first
 app.get('/messages', async (req, res) => {
     try {

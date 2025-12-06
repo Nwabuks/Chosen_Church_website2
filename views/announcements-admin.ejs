@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Announcements | ChiBooks</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .admin-container {
+            min-height: 80vh;
+            padding: 2rem 0;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, #17a2b8, #0d6efd);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        .announcement-card {
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid;
+        }
+        .announcement-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        .announcement-card.featured {
+            border-left-color: #ffc107;
+            background: linear-gradient(135deg, #fff9e6, #fff3cd);
+        }
+        .announcement-card.sticker {
+            border-left-color: #66ca7d;
+        }
+        .announcement-card.banner {
+            border-left-color: #43719c;
+        }
+        .priority-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .priority-1 { background: #6c757d; }
+        .priority-2 { background: #17a2b8; }
+        .priority-3 { background: #0d6efd; }
+        .priority-4 { background: #ffc107; color: #212529; }
+        .priority-5 { background: #dc3545; }
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-active { background: #66ca7d; color: white; }
+        .status-inactive { background: #6c757d; color: white; }
+        .status-expired { background: #dc3545; color: white; }
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .announcement-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 1rem;
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-bullhorn"></i> Manage Announcements</h1>
+                    <p class="mb-0">Create and manage announcements, stickers, and banners</p>
+                </div>
+                <div>
+                    <a href="/admin" class="btn btn-light me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Messages
+                    </a>
+                    <a href="/admin-events" class="btn btn-light me-2">
+                        <i class="fas fa-calendar-alt"></i> Events
+                    </a>
+                    <a href="/admin-logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Content -->
+    <div class="container admin-container">
+        <!-- Success Message -->
+        <% if (success) { %>
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle"></i> <%= success %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <% } %>
+
+        <!-- Admin Actions -->
+        <div class="admin-actions">
+            <a href="/create-announcement" class="btn btn-success">
+                <i class="fas fa-plus-circle"></i> Create New Announcement
+            </a>
+            <a href="/admin" class="btn btn-secondary">
+                <i class="fas fa-envelope"></i> Messages
+            </a>
+            <a href="/admin-events" class="btn btn-info">
+                <i class="fas fa-calendar-alt"></i> Events
+            </a>
+            <a href="/" class="btn btn-outline-primary">
+                <i class="fas fa-eye"></i> View Website
+            </a>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="filter-buttons">
+            <button class="btn btn-outline-primary active" onclick="filterAnnouncements('all')">
+                <i class="fas fa-list"></i> All
+            </button>
+            <button class="btn btn-outline-success" onclick="filterAnnouncements('active')">
+                <i class="fas fa-check-circle"></i> Active
+            </button>
+            <button class="btn btn-outline-warning" onclick="filterAnnouncements('featured')">
+                <i class="fas fa-star"></i> Featured
+            </button>
+            <button class="btn btn-outline-danger" onclick="filterAnnouncements('expired')">
+                <i class="fas fa-clock"></i> Expired
+            </button>
+        </div>
+
+        <!-- Database Status -->
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-database"></i> 
+            <% if (usingMongoDB) { %>
+                Connected to MongoDB Atlas - Announcements are permanent
+            <% } else { %>
+                Using temporary storage - Announcements will reset on server restart
+            <% } %>
+        </div>
+
+        <!-- Announcements List -->
+        <div id="announcementsList">
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                <p>Loading announcements...</p>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> Announcement Management</h5>
+            <ul class="mb-0">
+                <li><strong>Priority 1-5:</strong> Higher numbers show first (max 3 visible on homepage)</li>
+                <li><strong>Featured:</strong> Featured announcements show above featured events</li>
+                <li><strong>Expiration:</strong> Optional date when announcement auto-hides</li>
+                <li><strong>Types:</strong> 
+                    <span class="badge bg-success">Sticker</span> (small), 
+                    <span class="badge bg-primary">Banner</span> (large), 
+                    <span class="badge bg-info">Announcement</span> (regular)
+                </li>
+                <li>Only 3 announcements are visible on the homepage at once</li>
+                <li>Active announcements with higher priority show first</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Load announcements
+        async function loadAnnouncements() {
+            try {
+                const response = await fetch('/announcements-data');
+                const announcements = await response.json();
+                
+                const announcementsList = document.getElementById('announcementsList');
+                
+                if (announcements.length === 0) {
+                    announcementsList.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-bullhorn fa-3x mb-3"></i>
+                            <h5>No Announcements Yet</h5>
+                            <p>Create your first announcement using the button above.</p>
+                            <a href="/create-announcement" class="btn btn-success">
+                                <i class="fas fa-plus-circle"></i> Create Announcement
+                            </a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Sort: featured first, then priority, then date
+                announcements.sort((a, b) => {
+                    if (a.featured && !b.featured) return -1;
+                    if (!a.featured && b.featured) return 1;
+                    if (a.priority !== b.priority) return b.priority - a.priority;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                });
+                
+                const now = new Date();
+                
+                const announcementsHTML = announcements.map(announcement => {
+                    const createdAt = new Date(announcement.createdAt);
+                    const expiresAt = announcement.expiresAt ? new Date(announcement.expiresAt) : null;
+                    
+                    // Determine status
+                    let status = 'active';
+                    let statusClass = 'status-active';
+                    let statusText = 'Active';
+                    
+                    if (!announcement.active) {
+                        status = 'inactive';
+                        statusClass = 'status-inactive';
+                        statusText = 'Inactive';
+                    } else if (expiresAt && expiresAt < now) {
+                        status = 'expired';
+                        statusClass = 'status-expired';
+                        statusText = 'Expired';
+                    }
+                    
+                    // Format dates
+                    const createdDate = createdAt.toLocaleDateString();
+                    const expiresDate = expiresAt ? expiresAt.toLocaleDateString() : 'Never';
+                    
+                    // Priority badge
+                    const priorityColors = ['priority-1', 'priority-2', 'priority-3', 'priority-4', 'priority-5'];
+                    const priorityClass = priorityColors[announcement.priority - 1] || 'priority-3';
+                    
+                    // Type badge
+                    const typeColors = {
+                        'sticker': 'badge bg-success',
+                        'banner': 'badge bg-primary', 
+                        'announcement': 'badge bg-info'
+                    };
+                    const typeClass = typeColors[announcement.type] || 'badge bg-info';
+                    
+                    return `
+                        <div class="announcement-card ${announcement.featured ? 'featured' : ''} ${announcement.type}" 
+                             data-status="${status}" 
+                             data-featured="${announcement.featured}"
+                             data-type="${announcement.type}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="priority-badge ${priorityClass}">
+                                        ${announcement.priority}
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0">${announcement.title}</h5>
+                                        <div class="d-flex align-items-center gap-2 mt-1">
+                                            <span class="${typeClass}">${announcement.type}</span>
+                                            ${announcement.featured ? '<span class="badge bg-warning"><i class="fas fa-star"></i> Featured</span>' : ''}
+                                            <span class="${statusClass} status-badge">${statusText}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="action-buttons">
+                                    <a href="/edit-announcement/${announcement._id}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <form action="/toggle-announcement/${announcement._id}" method="POST" style="display: inline;">
+                                        <button type="submit" class="btn btn-${announcement.active ? 'warning' : 'success'} btn-sm">
+                                            <i class="fas fa-${announcement.active ? 'eye-slash' : 'eye'}"></i> ${announcement.active ? 'Deactivate' : 'Activate'}
+                                        </button>
+                                    </form>
+                                    <form action="/delete-announcement/${announcement._id}" method="POST" 
+                                          onsubmit="return confirm('Are you sure you want to delete \\'${announcement.title}\\'?')" 
+                                          style="display: inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                ${announcement.imageFile ? `
+                                <div class="col-md-2">
+                                    <img src="/announcement-image/${announcement._id}" 
+                                         alt="${announcement.title}" 
+                                         class="announcement-image">
+                                </div>
+                                <div class="col-md-10">
+                                ` : `<div class="col-12">`}
+                                
+                                    <p class="mb-2">${announcement.content}</p>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <div class="text-muted small">
+                                            <i class="fas fa-calendar-plus"></i> Created: ${createdDate}
+                                            ${expiresAt ? ` • <i class="fas fa-clock"></i> Expires: ${expiresDate}` : ''}
+                                            • <span style="background: ${announcement.backgroundColor}; color: ${announcement.textColor}; padding: 2px 8px; border-radius: 4px;">
+                                                Sample Colors
+                                            </span>
+                                        </div>
+                                        <small class="text-muted">
+                                            ID: ${announcement._id}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                announcementsList.innerHTML = announcementsHTML;
+                
+            } catch (error) {
+                console.error('Error loading announcements:', error);
+                document.getElementById('announcementsList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading announcements. Please refresh the page.
+                    </div>
+                `;
+            }
+        }
+        
+        // Filter announcements
+        function filterAnnouncements(filter) {
+            // Update button states
+            document.querySelectorAll('.filter-buttons .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            const cards = document.querySelectorAll('.announcement-card');
+            cards.forEach(card => {
+                switch(filter) {
+                    case 'active':
+                        card.style.display = card.dataset.status === 'active' ? 'block' : 'none';
+                        break;
+                    case 'featured':
+                        card.style.display = card.dataset.featured === 'true' ? 'block' : 'none';
+                        break;
+                    case 'expired':
+                        card.style.display = card.dataset.status === 'expired' ? 'block' : 'none';
+                        break;
+                    default: // 'all'
+                        card.style.display = 'block';
+                }
+            });
+        }
+        
+        // Load announcements on page load
+        document.addEventListener('DOMContentLoaded', loadAnnouncements);
+    </script>
+</body>
+</html>

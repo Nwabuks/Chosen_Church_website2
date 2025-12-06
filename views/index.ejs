@@ -52,6 +52,52 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="container">
+<!-- Announcements Section -->
+<div class="announcements-section">
+  <h2 class="section-title"></h2>
+  <div class="announcements-grid">
+    <% if (announcements && announcements.length > 0) { %>
+      <% announcements.forEach(function(announcement) { %>
+        <div class="announcement-card priority-border-<%= announcement.priority %>" style="background: <%= announcement.backgroundColor %>; color: <%= announcement.textColor %>;">
+          <!-- Add the priority circle at the top right -->
+          <div class="priority-circle priority-<%= announcement.priority %>"></div>
+          
+          <div class="announcement-image-container">
+            <% if (announcement.imageFile && announcement.imageFile.data) { %>
+              <img src="/announcement-image/<%= announcement._id %>" alt="<%= announcement.title %>">
+            <% } else { %>
+              <div class="no-image-placeholder" style="height: 100%; display: flex; align-items: center; justify-content: center; background: #f8f9fa;">
+                <i class="fas fa-image fa-3x text-muted"></i>
+              </div>
+            <% } %>
+          </div>
+          <div class="announcement-content">
+            <div class="announcement-header">
+              <h3 class="announcement-title"><%= announcement.title %></h3>
+              <% if (announcement.featured) { %>
+                <span class="announcement-badge badge-featured"><i class="fas fa-star"></i> Featured</span>
+              <% } %>
+            </div>
+            <p class="announcement-text"><%= announcement.content %></p>
+            <div class="announcement-footer">
+              <span class="announcement-date">
+                <i class="far fa-calendar-alt"></i> 
+                <%= new Date(announcement.createdAt).toLocaleDateString() %>
+              </span>
+              <span class="announcement-status status-<%= announcement.active ? 'active' : 'inactive' %>">
+                <%= announcement.active ? 'Active' : 'Inactive' %>
+              </span>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="no-announcements">
+        <p>No announcements available at this time.</p>
+      </div>
+    <% } %>
+  </div>
+</div>
             <!-- Events Section -->
             <section class="events-section">
                 <h2 class="section-title">Church Events & News</h2>
