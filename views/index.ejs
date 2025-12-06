@@ -54,7 +54,7 @@
         <div class="container">
 <!-- Announcements Section -->
 <div class="announcements-section">
-  <h2 class="section-title"></h2>
+  <h2 class="section-title">Latest Announcements</h2>
   <div class="announcements-grid">
     <% if (announcements && announcements.length > 0) { %>
       <% announcements.forEach(function(announcement) { %>
@@ -73,14 +73,14 @@
           </div>
           <div class="announcement-content">
             <div class="announcement-header">
-              <h3 class="announcement-title"><%= announcement.title %></h3>
+              <h3 class="announcement-title" style="color: <%= announcement.textColor %>;"><%= announcement.title %></h3>
               <% if (announcement.featured) { %>
                 <span class="announcement-badge badge-featured"><i class="fas fa-star"></i> Featured</span>
               <% } %>
             </div>
-            <p class="announcement-text"><%= announcement.content %></p>
+            <p class="announcement-text" style="color: <%= announcement.textColor %>;"><%= announcement.content %></p>
             <div class="announcement-footer">
-              <span class="announcement-date">
+              <span class="announcement-date" style="color: <%= announcement.textColor %>;">
                 <i class="far fa-calendar-alt"></i> 
                 <%= new Date(announcement.createdAt).toLocaleDateString() %>
               </span>
