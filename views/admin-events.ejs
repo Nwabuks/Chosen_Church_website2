@@ -3,767 +3,684 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Events - The God of Chosen Answers Prayers</title>
+    <title>Manage Events - Admin Panel</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        .admin-container {
-            min-height: 80vh;
-            padding: 2rem 0;
+<style>
+    :root {
+        --primary: #8B0000;
+        --primary-light: rgba(139, 0, 0, 0.1);
+        --secondary: #2C3E50;
+        --accent: #FFD700;
+        --success: #28A745;
+        --warning: #FFC107;
+        --danger: #DC3545;
+        --light-bg: #F8F9FA;
+        --card-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        --transition: all 0.3s ease;
+    }
+
+    body.admin-page {
+        background-color: var(--light-bg);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .admin-header {
+        background: linear-gradient(135deg, var(--primary), #5a0000);
+        color: white;
+        padding: 1.5rem 0;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+        opacity: 0.1;
+    }
+
+    .admin-container {
+        min-height: 80vh;
+        padding: 2rem 0;
+    }
+
+    .card-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 2rem;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: var(--transition);
+    }
+
+    .card-section:hover {
+        box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    }
+
+    .section-header {
+        color: var(--secondary);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .section-header i {
+        color: var(--primary);
+        background: var(--primary-light);
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        transition: var(--transition);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.25rem rgba(139, 0, 0, 0.15);
+    }
+
+    .file-upload-area {
+        border: 3px dashed var(--primary-light);
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        text-align: center;
+        transition: var(--transition);
+        background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .file-upload-area:hover, .file-upload-area.dragover {
+        border-color: var(--primary);
+        background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
+        transform: translateY(-2px);
+    }
+
+    .file-upload-area i {
+        color: var(--primary);
+        filter: drop-shadow(0 4px 6px rgba(139, 0, 0, 0.1));
+    }
+
+    .image-preview-container {
+        margin-top: 1.5rem;
+        display: none;
+    }
+
+    .image-preview {
+        width: 100%;
+        max-width: 400px;
+        height: 250px;
+        object-fit: cover;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        border: 3px solid white;
+    }
+
+    .admin-actions {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--card-shadow);
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .admin-actions .btn {
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: var(--transition);
+    }
+
+    .admin-actions .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    }
+
+    .events-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .event-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        border: 1px solid rgba(0,0,0,0.05);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .event-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    }
+
+    .event-image-container {
+        height: 200px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .event-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .event-card:hover .event-image {
+        transform: scale(1.05);
+    }
+
+    .event-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        backdrop-filter: blur(4px);
+    }
+
+    .event-content {
+        padding: 1.5rem;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .event-title {
+        color: var(--secondary);
+        font-weight: 700;
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+
+    .event-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .event-meta i {
+        color: var(--primary);
+    }
+
+    .event-description {
+        color: #495057;
+        flex-grow: 1;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .event-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: auto;
+    }
+
+    .event-actions .btn {
+        flex: 1;
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: var(--transition);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #9d0000);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #9d0000, var(--primary));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, var(--danger), #c82333);
+        border: none;
+    }
+
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #c82333, var(--danger));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+
+    .featured-badge {
+        background: linear-gradient(135deg, var(--accent), #ffdf4d);
+        color: #212529;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 0.5rem;
+    }
+
+    .instructions-card {
+        background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+        border-left: 4px solid var(--primary);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .instructions-card h5 {
+        color: var(--secondary);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .instructions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .instructions-list li {
+        padding: 0.5rem 0;
+        padding-left: 1.5rem;
+        position: relative;
+        color: #495057;
+        line-height: 1.6;
+    }
+
+    .instructions-list li:before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: var(--primary);
+        font-weight: bold;
+    }
+
+    .loading-spinner {
+        padding: 3rem;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .loading-spinner i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+        .admin-actions {
+            flex-direction: column;
         }
-        .admin-header {
-            background: linear-gradient(135deg, var(--primary), #600000);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-        }
-        .upload-section, .events-section {
-            background: white;
-            border-radius: 10px;
-            padding: 2rem;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-        .image-preview {
-            max-width: 300px;
-            max-height: 200px;
-            border-radius: 8px;
-            margin-top: 1rem;
-            display: none;
-        }
-        .event-card {
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-            transition: all 0.3s ease;
-        }
-        .event-card:hover {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .event-image {
+        
+        .admin-actions .btn {
             width: 100%;
-            height: 150px;
-            object-fit: cover;
+            justify-content: center;
         }
-        .event-details {
-            padding: 1rem;
+        
+        .events-grid {
+            grid-template-columns: 1fr;
         }
-        .file-upload {
-            border: 2px dashed #dee2e6;
-            border-radius: 8px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s;
-            background: #f8f9fa;
-            cursor: pointer;
+        
+        .card-section {
+            padding: 1.5rem;
         }
-        .file-upload:hover {
-            border-color: var(--primary);
-            background: #f0f4f8;
-        }
-        .event-status-badge {
-            padding: 0.3rem 0.8rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .status-upcoming { background: var(--success); color: white; }
-        .status-ongoing { background: var(--warning); color: #212529; }
-        .status-completed { background: var(--gray); color: white; }
-    </style>
+    }
+
+    .required-field::after {
+        content: " *";
+        color: var(--danger);
+    }
+</style>
 </head>
 <body class="admin-page">
-    <!-- Admin Header -->
-    <div class="admin-header">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1><i class="fas fa-calendar-alt"></i> Manage Events</h1>
-                    <p class="mb-0">Upload and manage church events and programs</p>
-                </div>
-                <div>
-                    <a href="/admin" class="btn btn-light me-2">
-                        <i class="fas fa-arrow-left"></i> Back to Messages
-                    </a>
-                    <a href="/admin-logout" class="btn btn-outline-light">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
+
+<div class="admin-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold mb-2"><i class="fas fa-calendar-alt me-3"></i>Manage Events</h1>
+                <p class="mb-0 opacity-75">Upload and manage church events and programs</p>
             </div>
-        </div>
-    </div>
-
-    <!-- Admin Content -->
-    <div class="container admin-container">
-        <!-- Success Message -->
-        <% if (success) { %>
-            <div class="alert alert-success alert-dismissible fade show">
-                <i class="fas fa-check-circle"></i> <%= success %>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <% } %>
-
-        <!-- Admin Navigation -->
-        <div class="admin-actions mb-4">
-            <a href="/admin" class="btn btn-secondary">
-                <i class="fas fa-envelope"></i> Manage Messages
-            </a>
-            <a href="/admin-events" class="btn btn-primary">
-                <i class="fas fa-calendar-alt"></i> Manage Events
-            </a>
-            <a href="/" class="btn btn-outline-primary">
-                <i class="fas fa-home"></i> View Website
-            </a>
-            <!-- Add this to the admin-actions section -->
-<a href="/admin-announcements" class="btn btn-info">
-    <i class="fas fa-bullhorn"></i> Manage Announcements
-</a>
-        </div>
-
-        <!-- Upload Event Section -->
-        <div class="upload-section">
-            <h3 class="mb-4"><i class="fas fa-plus-circle"></i> Add New Event</h3>
-            
-            <form id="eventForm" action="/upload-event" method="POST" enctype="multipart/form-data">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label" for="eventTitle">Event Title *</label>
-                            <input type="text" class="form-control" id="eventTitle" name="title" 
-                                   placeholder="Enter event title" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label" for="eventDate">Start Date & Time *</label>
-                            <input type="datetime-local" class="form-control" id="eventDate" name="date" required>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- NEW: End Date Field -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label" for="eventEndDate">End Date & Time (Optional)</label>
-                            <input type="datetime-local" class="form-control" id="eventEndDate" name="endDate">
-                            <small class="text-muted">For multi-day events. Leave empty for single-day events.</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label" for="eventVenue">Venue *</label>
-                            <input type="text" class="form-control" id="eventVenue" name="venue" 
-                                   placeholder="Enter event venue" required>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="eventDescription">Description *</label>
-                    <textarea class="form-control" id="eventDescription" name="description" 
-                              rows="3" placeholder="Describe the event..." required></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="eventLink">Event Link (Optional)</label>
-                    <input type="url" class="form-control" id="eventLink" name="link" 
-                           placeholder="https://example.com/event-registration">
-                </div>
-
-<!-- File Upload Section -->
-<div class="form-group">
-    <label class="form-label">Event Image *</label>
-    
-    <!-- DESKTOP VERSION (Hidden on Mobile) -->
-    <div class="d-none d-md-block">
-        <div class="file-upload" id="desktopUploadArea">
-            <i class="fas fa-image fa-3x text-primary mb-3"></i>
-            <h5>Drop event image here or click to browse</h5>
-            <p class="text-muted">Supported formats: JPG, PNG, GIF (Max: 5MB)</p>
-            <input type="file" class="d-none" id="eventImageDesktop" name="eventImage" 
-                   accept="image/*" required>
-            <button type="button" class="btn btn-primary mt-2" id="desktopUploadBtn">
-                <i class="fas fa-folder-open"></i> Choose Image
-            </button>
-            <div id="desktopFileName" class="mt-2 text-success fw-bold"></div>
-        </div>
-        <img id="desktopImagePreview" class="image-preview" alt="Image preview">
-    </div>
-    
-    <!-- MOBILE VERSION (Visible only on Mobile) -->
-    <div class="d-md-none">
-        <div class="card mobile-upload-card">
-            <div class="card-body text-center">
-                <i class="fas fa-camera fa-3x text-primary mb-3"></i>
-                <h5>Upload Event Image</h5>
-                <p class="text-muted">Tap below to select from camera or gallery</p>
-                
-                <!-- Mobile File Input - VISIBLE AND LARGE -->
-                <input type="file" 
-                       class="form-control mobile-file-input" 
-                       id="eventImageMobile" 
-                       name="eventImage" 
-                       accept="image/*,image/jpeg,image/png,image/gif,image/heic,image/heif"
-                       capture="environment"
-                       required
-                       style="height: 50px; font-size: 16px; padding: 10px;">
-                
-                <div class="mt-3">
-                    <small class="text-muted d-block mb-2">Or use:</small>
-                    <div class="btn-group w-100">
-                        <button type="button" class="btn btn-outline-primary" onclick="takePhoto()">
-                            <i class="fas fa-camera"></i> Camera
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="openGallery()">
-                            <i class="fas fa-images"></i> Gallery
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Mobile Preview Area -->
-                <div id="mobilePreviewArea" class="mt-3" style="display: none;">
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle"></i> Image selected
-                    </div>
-                    <div id="mobileFileName" class="text-success fw-bold mb-2"></div>
-                    <img id="mobileImagePreview" class="img-fluid rounded" alt="Preview" style="max-height: 200px;">
-                </div>
-                
-                <!-- No File Selected Message -->
-                <div id="mobileNoFile" class="alert alert-light mt-3">
-                    <i class="fas fa-info-circle"></i> No image selected yet
-                </div>
+            <div class="d-flex gap-2">
+                <a href="/admin" class="btn btn-light btn-sm px-3 py-2 rounded-pill">
+                    <i class="fas fa-arrow-left me-2"></i>Back
+                </a>
+                <a href="/admin-logout" class="btn btn-outline-light btn-sm px-3 py-2 rounded-pill">
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </a>
             </div>
         </div>
     </div>
 </div>
 
-                <div class="form-group form-check">
-                    <input type="checkbox" class="form-check-input" id="featuredEvent" name="featured">
-                    <label class="form-check-label" for="featuredEvent">
-                        Feature this event on homepage
-                    </label>
-                </div>
+<div class="container admin-container">
+    <% if (success) { %>
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
+            <i class="fas fa-check-circle fa-lg me-3"></i>
+            <div><strong>Success!</strong> <%= success %></div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+    <% } %>
+    
+    <!-- Admin Navigation -->
+    <div class="admin-actions">
+        <a href="/admin" class="btn btn-secondary">
+            <i class="fas fa-envelope"></i> Manage Messages
+        </a>
+        <a href="/admin-events" class="btn btn-primary">
+            <i class="fas fa-calendar-alt"></i> Manage Events
+        </a>
+        <a href="/" class="btn btn-outline-primary">
+            <i class="fas fa-home"></i> View Website
+        </a>
+        <a href="/admin-announcements" class="btn btn-info">
+            <i class="fas fa-bullhorn"></i> Manage Announcements
+        </a>
+    </div>
 
-                <div class="form-group">
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-upload"></i> Upload Event
-                    </button>
-                    <button type="reset" class="btn btn-outline-secondary btn-lg">
-                        <i class="fas fa-redo"></i> Reset Form
-                    </button>
-                </div>
-            </form>
+    <!-- Add New Event Card -->
+    <div class="card-section">
+        <div class="section-header">
+            <i class="fas fa-plus-circle"></i>
+            <h3 class="mb-0">Add New Event</h3>
         </div>
 
-        <!-- Events Management Section -->
-        <div class="events-section">
-            <h3 class="mb-4"><i class="fas fa-list"></i> Manage Events</h3>
-            
-            <div id="eventsList">
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
-                    <p>Loading events...</p>
+        <form id="eventForm" action="/upload-event" method="POST" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label required-field">Event Title</label>
+                    <input type="text" class="form-control" name="title" id="eventTitle" required 
+                           placeholder="Enter event title">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label required-field">Start Date</label>
+                    <input type="datetime-local" class="form-control" name="date" id="eventDate" required>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">End Date (Optional)</label>
+                    <input type="datetime-local" class="form-control" name="endDate" id="eventEndDate">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label required-field">Venue</label>
+                    <input type="text" class="form-control" name="venue" id="eventVenue" required 
+                           placeholder="Enter event venue">
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label required-field">Description</label>
+                    <textarea class="form-control" name="description" id="eventDescription" rows="4" 
+                              required placeholder="Describe your event..."></textarea>
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label">Event Link (Optional)</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-link"></i></span>
+                        <input type="url" class="form-control" name="link" placeholder="https://example.com/event">
+                    </div>
+                </div>
+                
+                <div class="col-12">
+                    <label class="form-label required-field">Event Image</label>
+                    <div class="file-upload-area" id="desktopUploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                        <h5 class="mb-2">Drag & drop or click to upload</h5>
+                        <p class="text-muted mb-3">PNG, JPG, GIF up to 5MB</p>
+                        <button type="button" class="btn btn-primary px-4 py-2 rounded-pill" id="desktopUploadBtn">
+                            <i class="fas fa-folder-open me-2"></i> Choose Image
+                        </button>
+                        <input type="file" id="eventImage" name="eventImage" accept="image/*" required style="display:none;">
+                        <div id="desktopFileName" class="mt-3 text-success fw-bold"></div>
+                    </div>
+                    
+                    <div class="image-preview-container" id="imagePreviewContainer">
+                        <p class="text-muted mb-2">Preview:</p>
+                        <img id="desktopImagePreview" class="image-preview" alt="Event image preview">
+                    </div>
+                </div>
+                
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="featured" id="featuredEvent" style="width: 3em; height: 1.5em;">
+                        <label class="form-check-label fw-bold ms-2" for="featuredEvent">
+                            <i class="fas fa-star text-warning me-1"></i> Feature on homepage
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-success btn-lg px-4 py-3">
+                        <i class="fas fa-upload me-2"></i> Upload Event
+                    </button>
                 </div>
             </div>
-        </div>
+        </form>
+    </div>
 
-        <!-- Instructions -->
-        <div class="alert alert-info">
-            <h5><i class="fas fa-info-circle"></i> Event Management Instructions</h5>
-            <ul class="mb-0">
-                <li>Upload high-quality images for better display (recommended: 800x600px)</li>
-                <li>Featured events appear prominently on the homepage</li>
-                <li>Include clear event details for better engagement</li>
-                <li>Add registration links if available</li>
-                <li>Use end date for multi-day events to show "Ongoing" status</li>
-                <li>Events are automatically sorted by date (soonest first)</li>
-                <li>Past events remain visible unless deleted</li>
-            </ul>
+    <!-- Events Management Section -->
+    <div class="card-section">
+        <div class="section-header">
+            <i class="fas fa-list"></i>
+            <h3 class="mb-0">Manage Events</h3>
+        </div>
+        
+        <div id="eventsList">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p class="mt-2">Loading events...</p>
+            </div>
         </div>
     </div>
 
+    <!-- Instructions Card -->
+    <div class="instructions-card">
+        <h5><i class="fas fa-lightbulb"></i> Event Management Best Practices</h5>
+        <ul class="instructions-list">
+            <li>Upload high-quality images with recommended dimensions of 800×600px</li>
+            <li>Featured events appear prominently on the homepage carousel</li>
+            <li>Include clear, concise descriptions for better engagement</li>
+            <li>Add registration or information links when available</li>
+            <li>Use end dates for multi-day events to show "Ongoing" status</li>
+            <li>Events are automatically sorted chronologically (soonest first)</li>
+            <li>Past events remain accessible in the archive unless deleted</li>
+        </ul>
+    </div>
+</div>
+
 <script>
-    // ===== MOBILE-FIRST FILE UPLOAD =====
-    let selectedFile = null;
+    // Enhanced upload functionality
+    const uploadArea = document.getElementById('desktopUploadArea');
+    const fileInput = document.getElementById('eventImage');
+    const fileNameDisplay = document.getElementById('desktopFileName');
+    const imagePreview = document.getElementById('desktopImagePreview');
+    const previewContainer = document.getElementById('imagePreviewContainer');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
     
-    // Set default dates
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set default start date
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        const eventDateInput = document.getElementById('eventDate');
-        if (eventDateInput) {
-            eventDateInput.value = now.toISOString().slice(0, 16);
-        }
-        
-        // Set default end date
-        const endDateInput = document.getElementById('eventEndDate');
-        if (endDateInput) {
-            const endDate = new Date(now);
-            endDate.setHours(endDate.getHours() + 2);
-            endDateInput.value = endDate.toISOString().slice(0, 16);
-        }
-        
-        // Initialize upload handlers
-        initFileUploads();
-        
-        // Load events
-        loadEvents();
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
     });
     
-    // ===== INITIALIZE FILE UPLOADS =====
-    function initFileUploads() {
-        // DESKTOP HANDLERS
-        const desktopInput = document.getElementById('eventImageDesktop');
-        const desktopBtn = document.getElementById('desktopUploadBtn');
-        const desktopArea = document.getElementById('desktopUploadArea');
-        
-        if (desktopBtn && desktopInput) {
-            desktopBtn.addEventListener('click', () => desktopInput.click());
-            
-            desktopInput.addEventListener('change', function(e) {
-                if (this.files.length > 0) {
-                    handleDesktopFile(this.files[0]);
-                }
-            });
-            
-            // Desktop drag and drop
-            if (desktopArea) {
-                desktopArea.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    desktopArea.classList.add('dragover');
-                });
-                
-                desktopArea.addEventListener('dragleave', (e) => {
-                    e.preventDefault();
-                    desktopArea.classList.remove('dragover');
-                });
-                
-                desktopArea.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    desktopArea.classList.remove('dragover');
-                    
-                    if (e.dataTransfer.files.length > 0) {
-                        handleDesktopFile(e.dataTransfer.files[0]);
-                    }
-                });
-                
-                desktopArea.addEventListener('click', () => desktopInput.click());
-            }
-        }
-        
-        // MOBILE HANDLERS
-        const mobileInput = document.getElementById('eventImageMobile');
-        if (mobileInput) {
-            mobileInput.addEventListener('change', function(e) {
-                if (this.files.length > 0) {
-                    handleMobileFile(this.files[0]);
-                }
-            });
-        }
-    }
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
     
-    // ===== HANDLE DESKTOP FILE =====
-    function handleDesktopFile(file) {
-        if (!validateFile(file)) return;
-        
-        selectedFile = file;
-        
-        // Show file name
-        const fileNameDisplay = document.getElementById('desktopFileName');
-        if (fileNameDisplay) {
-            fileNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect();
         }
+    });
+
+    fileInput.addEventListener('change', handleFileSelect);
+
+    function handleFileSelect() {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        fileNameDisplay.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         
-        // Show preview
-        const preview = document.getElementById('desktopImagePreview');
-        if (preview) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-    
-    // ===== HANDLE MOBILE FILE =====
-    function handleMobileFile(file) {
-        if (!validateFile(file)) return;
-        
-        selectedFile = file;
-        
-        // Show preview area
-        const previewArea = document.getElementById('mobilePreviewArea');
-        const noFileArea = document.getElementById('mobileNoFile');
-        if (previewArea) previewArea.style.display = 'block';
-        if (noFileArea) noFileArea.style.display = 'none';
-        
-        // Show file name
-        const fileNameDisplay = document.getElementById('mobileFileName');
-        if (fileNameDisplay) {
-            fileNameDisplay.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-        }
-        
-        // Show preview
-        const preview = document.getElementById('mobileImagePreview');
-        if (preview) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-    
-    // ===== VALIDATE FILE =====
-    function validateFile(file) {
-        // Check file type
-        const validTypes = [
-            'image/jpeg', 'image/jpg', 'image/png', 
-            'image/gif', 'image/webp', 'image/heic', 
-            'image/heif'
-        ];
-        
-        if (!validTypes.includes(file.type.toLowerCase())) {
-            alert('Error: Only image files are allowed! (JPG, PNG, GIF, WebP)');
-            return false;
-        }
-        
-        // Check file size
-        if (file.size > 5 * 1024 * 1024) {
-            alert('Error: File size must be less than 5MB!');
-            return false;
-        }
-        
-        return true;
-    }
-    
-    // ===== MOBILE SPECIFIC FUNCTIONS =====
-    function takePhoto() {
-        // Create a camera-specific file input
-        const cameraInput = document.createElement('input');
-        cameraInput.type = 'file';
-        cameraInput.accept = 'image/*';
-        cameraInput.capture = 'environment'; // Rear camera
-        cameraInput.style.display = 'none';
-        
-        cameraInput.onchange = function(e) {
-            if (this.files.length > 0) {
-                handleMobileFile(this.files[0]);
-                
-                // Also update the mobile input
-                const mobileInput = document.getElementById('eventImageMobile');
-                if (mobileInput) {
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(this.files[0]);
-                    mobileInput.files = dataTransfer.files;
-                }
-            }
-            document.body.removeChild(cameraInput);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.src = e.target.result;
+            previewContainer.style.display = 'block';
         };
-        
-        document.body.appendChild(cameraInput);
-        cameraInput.click();
+        reader.readAsDataURL(file);
     }
-    
-    function openGallery() {
-        // Create a gallery-specific file input
-        const galleryInput = document.createElement('input');
-        galleryInput.type = 'file';
-        galleryInput.accept = 'image/*';
-        galleryInput.multiple = false;
-        galleryInput.style.display = 'none';
-        
-        galleryInput.onchange = function(e) {
-            if (this.files.length > 0) {
-                handleMobileFile(this.files[0]);
-                
-                // Also update the mobile input
-                const mobileInput = document.getElementById('eventImageMobile');
-                if (mobileInput) {
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(this.files[0]);
-                    mobileInput.files = dataTransfer.files;
-                }
-            }
-            document.body.removeChild(galleryInput);
-        };
-        
-        document.body.appendChild(galleryInput);
-        galleryInput.click();
-    }
-    
-    // ===== FORM SUBMISSION =====
-    const eventForm = document.getElementById('eventForm');
-    if (eventForm) {
-        eventForm.addEventListener('submit', function(e) {
-            // Basic validation
-            const title = document.getElementById('eventTitle')?.value.trim();
-            const date = document.getElementById('eventDate')?.value;
-            const venue = document.getElementById('eventVenue')?.value.trim();
-            const description = document.getElementById('eventDescription')?.value.trim();
-            
-            let errors = [];
-            
-            if (!title) errors.push('Event title is required');
-            if (!date) errors.push('Event date is required');
-            if (!venue) errors.push('Venue is required');
-            if (!description) errors.push('Description is required');
-            
-            // Check for file (check all inputs)
-            const hasFile = checkForFiles();
-            if (!hasFile) {
-                errors.push('Event image is required');
-            }
-            
-            // End date validation
-            const endDateInput = document.getElementById('eventEndDate')?.value;
-            if (endDateInput && date) {
-                const startDate = new Date(date);
-                const endDate = new Date(endDateInput);
-                if (endDate <= startDate) {
-                    errors.push('End date must be after start date');
-                }
-            }
-            
-            if (errors.length > 0) {
-                e.preventDefault();
-                
-                // Mobile-friendly error display
-                if (window.innerWidth <= 768) {
-                    // Simple alert for mobile
-                    alert('Please fix these errors:\n\n' + errors.join('\n'));
-                } else {
-                    alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
-                }
-                return false;
-            }
-            
-            // Show loading state
-            const submitBtn = this.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-                submitBtn.disabled = true;
-            }
-            
-            return true;
-        });
-    }
-    
-    function checkForFiles() {
-        // Check mobile input
-        const mobileInput = document.getElementById('eventImageMobile');
-        if (mobileInput && mobileInput.files.length > 0) return true;
-        
-        // Check desktop input
-        const desktopInput = document.getElementById('eventImageDesktop');
-        if (desktopInput && desktopInput.files.length > 0) return true;
-        
-        // Check selected file variable
-        return selectedFile !== null;
-    }
-    
-    // ===== LOAD AND DISPLAY EVENTS =====
+
+    // Enhanced events loading with better UI
     async function loadEvents() {
         try {
-            const response = await fetch('/events-data');
-            let events = await response.json();
+            const res = await fetch('/events-data');
+            const events = await res.json();
             
-            const eventsList = document.getElementById('eventsList');
-            
-            if (events.length === 0) {
-                eventsList.innerHTML = `
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
-                        <h5>No Events Yet</h5>
-                        <p>Add your first event using the form above.</p>
+            if (!events || events.length === 0) {
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No events yet</h4>
+                        <p class="text-muted">Start by adding your first event above</p>
                     </div>
                 `;
                 return;
             }
             
-            // Sort events
-            events.sort((a, b) => {
-                if (a.featured && !b.featured) return -1;
-                if (!a.featured && b.featured) return 1;
-                
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
+            let html = '<div class="events-grid">';
+            
+            events.forEach(evt => {
+                const eventDate = new Date(evt.date);
                 const now = new Date();
+                let status = 'upcoming';
+                let statusText = 'Upcoming';
                 
-                if (dateA > now && dateB > now) return dateA - dateB;
-                if (dateA > now && dateB <= now) return -1;
-                if (dateA <= now && dateB > now) return 1;
-                return dateB - dateA;
+                if (evt.endDate) {
+                    const endDate = new Date(evt.endDate);
+                    if (now >= eventDate && now <= endDate) {
+                        status = 'ongoing';
+                        statusText = 'Ongoing';
+                    } else if (now > endDate) {
+                        status = 'completed';
+                        statusText = 'Completed';
+                    }
+                } else if (now > eventDate) {
+                    status = 'completed';
+                    statusText = 'Completed';
+                }
+                
+                html += `
+                    <div class="event-card ${evt.featured ? 'featured-event' : ''}">
+                        <div class="event-image-container">
+                            <img src="/event-image/${evt._id}" class="event-image" alt="${evt.title}">
+                            <div class="event-badge">${statusText}</div>
+                            ${evt.featured ? '<div class="featured-badge"><i class="fas fa-star"></i> Featured</div>' : ''}
+                        </div>
+                        <div class="event-content">
+                            <h4 class="event-title">${evt.title}</h4>
+                            <div class="event-meta">
+                                <span><i class="fas fa-calendar"></i> ${eventDate.toLocaleDateString()}</span>
+                                <span><i class="fas fa-clock"></i> ${eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                <span><i class="fas fa-map-marker-alt"></i> ${evt.venue}</span>
+                            </div>
+                            <p class="event-description">${evt.description.substring(0, 120)}${evt.description.length > 120 ? '...' : ''}</p>
+                            <div class="event-actions">
+                                <a href="/edit-event/${evt._id}" class="btn btn-primary">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <form action="/delete-event/${evt._id}" method="POST" class="d-inline" 
+                                      onsubmit="return confirm('Are you sure you want to delete this event?')">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                `;
             });
             
-            let eventsHTML = '';
-            
-            // Featured events
-            const featuredEvents = events.filter(event => event.featured);
-            if (featuredEvents.length > 0) {
-                eventsHTML += `
-                    <div class="featured-events-section mb-4">
-                        <h4 class="text-warning mb-3">
-                            <i class="fas fa-star"></i> Featured Events (${featuredEvents.length})
-                        </h4>
-                        ${featuredEvents.map(event => generateEventHTML(event, true)).join('')}
-                    </div>
-                `;
-            }
-            
-            // Regular events
-            const regularEvents = events.filter(event => !event.featured);
-            if (regularEvents.length > 0) {
-                eventsHTML += `
-                    <div class="regular-events-section">
-                        <h4 class="text-primary mb-3">
-                            <i class="fas fa-calendar-alt"></i> All Events (${regularEvents.length})
-                        </h4>
-                        ${regularEvents.map(event => generateEventHTML(event, false)).join('')}
-                    </div>
-                `;
-            }
-            
-            eventsList.innerHTML = eventsHTML;
+            html += '</div>';
+            document.getElementById('eventsList').innerHTML = html;
             
         } catch (error) {
             console.error('Error loading events:', error);
             document.getElementById('eventsList').innerHTML = `
                 <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i> Error loading events. Please refresh the page.
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Failed to load events. Please try again.
                 </div>
             `;
         }
     }
+
+    // Load events on page load
+    document.addEventListener('DOMContentLoaded', loadEvents);
     
-    // ===== GENERATE EVENT HTML =====
-    function generateEventHTML(event, isFeatured) {
-        const eventDate = new Date(event.date);
-        const endDate = event.endDate ? new Date(event.endDate) : null;
-        const now = new Date();
-        
-        // Calculate status
-        let status = 'upcoming';
-        let statusClass = 'status-upcoming';
-        
-        if (endDate) {
-            if (now < eventDate) {
-                status = 'upcoming';
-            } else if (now >= eventDate && now <= endDate) {
-                status = 'ongoing';
-                statusClass = 'status-ongoing';
-            } else {
-                status = 'completed';
-                statusClass = 'status-completed';
-            }
-        } else {
-            const eventDay = new Date(eventDate);
-            eventDay.setHours(23, 59, 59, 999);
-            
-            if (now < eventDate) {
-                status = 'upcoming';
-            } else if (now <= eventDay) {
-                status = 'ongoing';
-                statusClass = 'status-ongoing';
-            } else {
-                status = 'completed';
-                statusClass = 'status-completed';
-            }
-        }
-        
-        // Format date display
-        let dateDisplay = eventDate.toLocaleDateString();
-        let timeDisplay = eventDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        if (endDate) {
-            dateDisplay = `${eventDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-            const endTimeDisplay = endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            timeDisplay = `${timeDisplay} to ${endTimeDisplay}`;
-        }
-        
-        return `
-            <div class="event-card ${isFeatured ? 'featured-event' : ''} ${status === 'completed' ? 'opacity-75' : ''} mb-3">
-                <div class="row g-0">
-                    <div class="col-md-3">
-                        <img src="/event-image/${event._id}" alt="${event.title}" class="event-image">
-                    </div>
-                    <div class="col-md-9">
-                        <div class="event-details">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
-                                    <h5 class="mb-1">${event.title}</h5>
-                                    <p class="text-muted mb-1">
-                                        <i class="far fa-calendar"></i> ${dateDisplay} • 
-                                        <i class="far fa-clock"></i> ${timeDisplay}
-                                    </p>
-                                    <p class="mb-1"><strong>Venue:</strong> ${event.venue}</p>
-                                </div>
-                                <div class="d-flex gap-1">
-                                    ${event.featured ? '<span class="badge bg-warning">Featured</span>' : ''}
-                                    <span class="event-status-badge ${statusClass}">
-                                        ${status === 'ongoing' ? '🔥 ' : ''}${status.charAt(0).toUpperCase() + status.slice(1)}
-                                    </span>
-                                </div>
-                            </div>
-                            <p class="mb-2">${event.description}</p>
-                            ${event.link ? `<p class="mb-2"><strong>Link:</strong> <a href="${event.link}" target="_blank">${event.link}</a></p>` : ''}
-                            <div class="d-flex justify-content-between align-items-center">
-                                <small class="text-muted">
-                                    Created: ${new Date(event.createdAt).toLocaleDateString()}
-                                </small>
-                                <div class="action-buttons">
-                                    <a href="/edit-event/${event._id}" class="btn btn-primary btn-sm me-2">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </a>
-                                    ${event.featured ? `
-                                        <button onclick="unfeatureEvent('${event._id}')" class="btn btn-warning btn-sm me-2" title="Remove from Featured">
-                                            <i class="fas fa-star"></i> Unfeature
-                                        </button>
-                                    ` : ''}
-                                    <form action="/delete-event/${event._id}" method="POST" onsubmit="return confirm('Are you sure you want to delete \"${event.title}\"?')" style="display: inline;">
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // ===== UNFEATURE EVENT =====
-    function unfeatureEvent(eventId) {
-        if (confirm('Are you sure you want to remove this event from featured?')) {
-            fetch(`/unfeature-event/${eventId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    alert('Error unfeaturing event');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error unfeaturing event');
-            });
-        }
-    }
+    // Set minimum date to today for date inputs
+    const today = new Date().toISOString().slice(0, 16);
+    document.getElementById('eventDate').min = today;
+    document.getElementById('eventEndDate').min = today;
 </script>
+
 </body>
 </html>
