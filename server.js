@@ -28,6 +28,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_USER = process.env.ADMIN_USER || 'Admin';
 
 console.log('🔧 Configuration:');
 console.log('   PORT:', PORT);
@@ -1048,14 +1049,35 @@ app.get('/admin-search', requireAuth, async (req, res) => {
     }
 });
 // Events Admin Page
-app.get('/admin-events', requireAuth, (req, res) => {
-    const usingMongoDB = mongoose.connection.readyState === 1;
-    const success = req.query.success;
-    res.render('admin-events', { 
-        usingMongoDB: usingMongoDB,
-        isAuthenticated: true,
-        success: success
-    });
+app.get('/admin-events', requireAuth, async (req, res) => {
+    try {
+        const usingMongoDB = mongoose.connection.readyState === 1;
+        let events = [];
+        
+        try {
+            if (usingMongoDB) {
+                // Get all events sorted by date (newest first)
+                events = await Event.find().sort({ date: -1 });
+            } else {
+                // Fallback to temporary storage
+                events = tempEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+            }
+        } catch (dbError) {
+            console.log('Error loading events from DB:', dbError);
+            events = tempEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+        
+        const success = req.query.success;
+        res.render('admin-events', {
+            events: events,
+            usingMongoDB: usingMongoDB,
+            isAuthenticated: true,
+            success: success
+        });
+    } catch (err) {
+        console.log('Events admin page error:', err);
+        res.status(500).send('Error loading events admin page');
+    }
 });
 
 // Upload Event
@@ -1412,9 +1434,9 @@ app.get('/admin-login', (req, res) => {
 
 // Admin Login Handler
 app.post('/admin-login', (req, res) => {
-    const { password } = req.body;
+    const { userId,password } = req.body;
     
-    if (password === ADMIN_PASSWORD) {
+    if (password === ADMIN_PASSWORD && userId === ADMIN_USER) {
         req.session.isAuthenticated = true;
         console.log('🔐 Admin logged in successfully');
         res.redirect('/admin');
